@@ -93,15 +93,10 @@ const rooms = {};
 
 // BonziTV Synchronization
 const bonziTVShows = [
-    "YQa2-DY7Y_Q", "0hRB8d6aAzs", "9w0G7v6wbm8", "04ErdQvQKyk", "NKjA1pGl5W4",
-    "oPFuC7IcTiU", "b8vUzNczUbo", "m_7nnajnaI8", "VrsdG8wJGAg", "GAHDT5tOyco",
-    "vwsGT30TQ3A", "oT7iJzjhfJU", "Jyh88VNDWww", "fl2u3hZLzYw", "4jtAbf5wk0s",
-    "MWqNcT031OI", "VycoBoE4Qkk", "_ozldR0jGBs", "0HR5fL1qOQk", "6tgY-t3slFM",
-    "nrvV9s_dknA", "R9J1BpkcCYs", "klj3qXEaFJQ"
+    "6-6DhzkhVBo", "flJ3fpGB9co", "A315g7Y3d9g", "iKCNlur5wRY", "zGS0hqfPvCE", "lIgJ9O9MffE", "8u9E3C-HIm4"
 ];
 const bonziTVIdents = [
-    "88cxenu68o8", "b2OUKjLzcEc", "lF47OCVZi6s", "P8y03L-LUFE", "cuBqIBhnuUU",
-    "bYDrr8Z9fPE", "aKLk59bnKWE", "i0xpDILkXG8", "5674qRmTQY8", "RnkrKi4Tsuo"
+    "b2OUKjLzcEc", "Uyw-bne3G2A", "ZZz3A6H4f-E", "qQKd7VxAMBY", "p6W9MZmu9pc", "HKJopZ6MvPE", "vRpADLCVfoM", "EuEkdlCn-gI", "UN3P95SjxP8", "_TOKdk36iVM", "_UEaBbz-gV0", "kH3_lRNawtA", "i0xpDILkXG8", "yBCx1_OspaY"
 ];
 
 let currentBonziTVVideo = null;
@@ -262,6 +257,13 @@ io.on('connection', (socket) => {
       isPublic: room === 'main',
       room: room
     });
+
+    // Auto-turn on BonziTV in bonzi_tv room
+    if (room === 'bonzi_tv' && !bonziTVActive) {
+        bonziTVActive = true;
+        nextBonziTVVideo();
+    }
+
     // Send all users in the room
     socket.emit('updateAll', {
       usersPublic: rooms[room]
@@ -342,7 +344,7 @@ io.on('connection', (socket) => {
     const userPublic = rooms[room][guid];
 
     switch (cmd) {
-      case 'turnonbonzitv':
+      case 'bonzitv':
         if (!rooms[room][guid].admin) {
           socket.emit('alert', { text: 'Admins only!' });
           break;
@@ -351,7 +353,7 @@ io.on('connection', (socket) => {
         nextBonziTVVideo();
         io.to(room).emit('bonzitv', { status: true, vid: currentBonziTVVideo });
         break;
-      case 'choosevideo':
+      case 'setbonzitvvid':
         if (!rooms[room][guid].admin) {
           socket.emit('alert', { text: 'Admins only!' });
           break;
