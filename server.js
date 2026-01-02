@@ -6,7 +6,8 @@ const cors = require('cors');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0';
 
 const frontendDir = path.join(__dirname, 'frontend');
 
@@ -43,6 +44,46 @@ app.get('/', (req, res) => {
 // Create HTTP server and attach socket.io
 const server = http.createServer(app);
 const io = socketio(server);
+
+// Rate limiting and bot protection
+const messageCounts = new Map(); // Tracks message counts per IP per window
+const MESSAGE_LIMIT = 5; // Max messages per window
+const WINDOW_SIZE = 5000; // 5 seconds window
+const connectionThrottling = new Map(); // Tracks connection attempts per IP
+const CONNECTION_LIMIT = 3; // Max connections per window
+const CONNECTION_WINDOW = 60000; // 1 minute window
+
+function checkRateLimit(ip) {
+    const now = Date.now();
+    if (!messageCounts.has(ip)) {
+        messageCounts.set(ip, { count: 1, firstMessage: now });
+        return true;
+    }
+    const data = messageCounts.get(ip);
+    if (now - data.firstMessage > WINDOW_SIZE) {
+        data.count = 1;
+        data.firstMessage = now;
+        return true;
+    }
+    data.count++;
+    return data.count <= MESSAGE_LIMIT;
+}
+
+function checkConnectionThrottle(ip) {
+    const now = Date.now();
+    if (!connectionThrottling.has(ip)) {
+        connectionThrottling.set(ip, { count: 1, firstTimestamp: now });
+        return true;
+    }
+    const data = connectionThrottling.get(ip);
+    if (now - data.firstTimestamp > CONNECTION_WINDOW) {
+        data.count = 1;
+        data.firstTimestamp = now;
+        return true;
+    }
+    data.count++;
+    return data.count <= CONNECTION_LIMIT;
+}
 
 // Allow all origins for socket.io (v1.x way)
 io.set('origins', '*:*');
@@ -111,6 +152,12 @@ io.on('connection', (socket) => {
   const clientIp = socket.handshake.headers['x-real-ip'] || 
                    socket.handshake.headers['x-forwarded-for'] || 
                    socket.handshake.address;
+
+  if (!checkConnectionThrottle(clientIp)) {
+      console.log('Connection throttled for IP:', clientIp);
+      socket.disconnect();
+      return;
+  }
                    
   // Initialize IP tracking
   if (!ipConnections.has(clientIp)) {
@@ -198,18 +245,62 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('typing', function(data) {
+    const room = socket.room;
+    const guid = socket.guid;
+    if (room && guid) {
+      socket.to(room).emit('typing', {
+        guid: guid,
+        status: !!data.status
+      });
+    }
+  });
+
+  socket.on('voice_chunk', function(data) {
+    const room = socket.room;
+    if (room) {
+      socket.to(room).emit('voice_chunk', {
+        guid: socket.id,
+        chunk: data.chunk
+      });
+    }
+  });
+
   socket.on('talk', function(data) {
+    if (!checkRateLimit(clientIp)) {
+        socket.emit('alert', { text: 'You are sending messages too fast!' });
+        return;
+    }
     const room = socket.room;
     const guid = socket.guid;
     if (room && guid && typeof data.text === 'string') {
-      io.to(room).emit('talk', {
+        const sanitizedText = data.text.substring(0, 512);
+        io.to(room).emit('talk', {
+            guid: guid,
+            text: sanitizedText
+        });
+    }
+  });
+
+  socket.on('move', function(data) {
+    const room = socket.room;
+    const guid = socket.guid;
+    if (room && guid && rooms[room] && rooms[room][guid]) {
+      rooms[room][guid].x = data.x;
+      rooms[room][guid].y = data.y;
+      socket.to(room).emit('move', {
         guid: guid,
-        text: data.text
+        x: data.x,
+        y: data.y
       });
     }
   });
 
   socket.on('command', function(data) {
+    if (!checkRateLimit(clientIp)) {
+        socket.emit('alert', { text: 'You are sending commands too fast!' });
+        return;
+    }
     if (!Array.isArray(data.list) || data.list.length === 0) return;
     const cmd = (data.list[0] || '').toLowerCase();
     const args = data.list.slice(1);
@@ -219,6 +310,25 @@ io.on('connection', (socket) => {
     const userPublic = rooms[room][guid];
 
     switch (cmd) {
+      case 'turnonbonzitv':
+        if (!rooms[room][guid].admin) {
+          socket.emit('alert', { text: 'Admins only!' });
+          break;
+        }
+        io.to(room).emit('bonzitv', { status: true });
+        break;
+      case 'choosevideo':
+        if (!rooms[room][guid].admin) {
+          socket.emit('alert', { text: 'Admins only!' });
+          break;
+        }
+        if (args[0]) {
+          const vid = args[0].replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 11);
+          if (vid.length === 11) {
+            io.to(room).emit('bonzitv_video', { vid: vid });
+          }
+        }
+        break;
       case 'asshole':
         // args[0] = target name
         io.to(room).emit('asshole', { guid, target: args[0] || '' });
@@ -240,11 +350,14 @@ io.on('connection', (socket) => {
         break;
       case 'youtube':
         if (args[0]) {
-          io.to(room).emit('youtube', { guid, vid: args[0] });
+          const vid = args[0].replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 11);
+          if (vid.length === 11) {
+            io.to(room).emit('youtube', { guid, vid: vid });
+          }
         }
         break;
       case 'joke':
-        // Optionally randomize a seed for joke selection
+        // No change needed here, server already emits 'joke' event
         io.to(room).emit('joke', { guid, rng: Math.random().toString() });
         break;
       case 'fact':
@@ -253,6 +366,15 @@ io.on('connection', (socket) => {
       case 'backflip':
         // args[0] can be a flag for 'swag' (optional)
         io.to(room).emit('backflip', { guid, swag: !!args[0] });
+        break;
+      case 'bang':
+        io.to(room).emit('bang', { guid });
+        break;
+      case 'clap':
+        io.to(room).emit('clap', { guid });
+        break;
+      case 'grin':
+        io.to(room).emit('grin', { guid });
         break;
       case 'triggered':
         io.to(room).emit('triggered', { guid });
@@ -403,6 +525,34 @@ io.on('connection', (socket) => {
           }
         }
         break;
+      case 'scream':
+        io.to(room).emit('scream', { guid });
+        break;
+      case 'voicechat':
+        if (args[0] === 'on' || args[0] === 'off') {
+          const status = args[0] === 'on';
+          rooms[room].voicechat = status;
+          userPublic.voicechat = status;
+          if (status) {
+            if (!userPublic.name.includes('(VC ON)')) {
+              userPublic.name += ' (VC ON)';
+            }
+          } else {
+            userPublic.name = userPublic.name.replace(' (VC ON)', '');
+          }
+          io.to(room).emit('update', { guid, userPublic });
+          io.to(room).emit('voicechat', { status: status });
+        }
+        break;
+      case 'dvdbounce':
+        io.to(room).emit('dvdbounce', { guid });
+        break;
+      case 'orbit':
+        io.to(room).emit('orbit', { guid });
+        break;
+      case 'boing':
+        io.to(room).emit('boing', { guid });
+        break;
       // For now we're just gonna end this command list here
     }
   });
@@ -435,6 +585,6 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Server running at http://${HOST}:${PORT}`);
 }); 
