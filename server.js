@@ -91,6 +91,34 @@ io.set('origins', '*:*');
 // In-memory user and room tracking
 const rooms = {};
 
+// BonziTV Synchronization
+const bonziTVShows = [
+    "YQa2-DY7Y_Q", "0hRB8d6aAzs", "9w0G7v6wbm8", "04ErdQvQKyk", "NKjA1pGl5W4",
+    "oPFuC7IcTiU", "b8vUzNczUbo", "m_7nnajnaI8", "VrsdG8wJGAg", "GAHDT5tOyco",
+    "vwsGT30TQ3A", "oT7iJzjhfJU", "Jyh88VNDWww", "fl2u3hZLzYw", "4jtAbf5wk0s",
+    "MWqNcT031OI", "VycoBoE4Qkk", "_ozldR0jGBs", "0HR5fL1qOQk", "6tgY-t3slFM",
+    "nrvV9s_dknA", "R9J1BpkcCYs", "klj3qXEaFJQ"
+];
+const bonziTVIdents = [
+    "88cxenu68o8", "b2OUKjLzcEc", "lF47OCVZi6s", "P8y03L-LUFE", "cuBqIBhnuUU",
+    "bYDrr8Z9fPE", "aKLk59bnKWE", "i0xpDILkXG8", "5674qRmTQY8", "RnkrKi4Tsuo"
+];
+
+let currentBonziTVVideo = null;
+let currentBonziTVMode = "show";
+let bonziTVActive = false;
+
+function nextBonziTVVideo() {
+    if (currentBonziTVMode === "show") {
+        currentBonziTVVideo = bonziTVShows[Math.floor(Math.random() * bonziTVShows.length)];
+        currentBonziTVMode = "ident";
+    } else {
+        currentBonziTVVideo = bonziTVIdents[Math.floor(Math.random() * bonziTVIdents.length)];
+        currentBonziTVMode = "show";
+    }
+    return currentBonziTVVideo;
+}
+
 // Load or create config file
 let config = {
     godmode_password: "bonzi"
@@ -238,6 +266,10 @@ io.on('connection', (socket) => {
     socket.emit('updateAll', {
       usersPublic: rooms[room]
     });
+    // Send current BonziTV state if active
+    if (bonziTVActive && currentBonziTVVideo) {
+      socket.emit('bonzitv', { status: true, vid: currentBonziTVVideo });
+    }
     // Notify others in the room
     socket.to(room).emit('update', {
       guid: guid,
@@ -315,7 +347,9 @@ io.on('connection', (socket) => {
           socket.emit('alert', { text: 'Admins only!' });
           break;
         }
-        io.to(room).emit('bonzitv', { status: true });
+        bonziTVActive = true;
+        nextBonziTVVideo();
+        io.to(room).emit('bonzitv', { status: true, vid: currentBonziTVVideo });
         break;
       case 'choosevideo':
         if (!rooms[room][guid].admin) {
@@ -325,6 +359,7 @@ io.on('connection', (socket) => {
         if (args[0]) {
           const vid = args[0].replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 11);
           if (vid.length === 11) {
+            currentBonziTVVideo = vid;
             io.to(room).emit('bonzitv_video', { vid: vid });
           }
         }
@@ -369,6 +404,16 @@ io.on('connection', (socket) => {
         break;
       case 'bang':
         io.to(room).emit('bang', { guid });
+        break;
+      case 'image':
+        if (args[0]) {
+          io.to(room).emit('image', { guid, url: args[0] });
+        }
+        break;
+      case 'video':
+        if (args[0]) {
+          io.to(room).emit('video', { guid, url: args[0] });
+        }
         break;
       case 'clap':
         io.to(room).emit('clap', { guid });
