@@ -14,7 +14,7 @@ var BonziTVSHOWS = [
 
 // ===== IDENTS =====
 var BonziTVIDENTS = [
-  "b2OUKjLzcEc", "Uyw-bne3G2A", "ZZz3A6H4f-E", "qQKd7VxAMBY", "p6W9MZmu9pc", "HKJopZ6MvPE", "vRpADLCVfoM", "EuEkdlCn-gI", "UN3P95SjxP8", "_TOKdk36iVM", "_UEaBbz-gV0", "kH3_lRNawtA", "i0xpDILkXG8", "yBCx1_OspaY"
+  "b2OUKjLzcEc", "Uyw-bne3G2A", "ZZz3A6H4f-E", "qQKd7VxAMBY", "p6W9MZmu9pc", "HKJopZ6MvPE", "vRpADLCVfoM", "EuEkdlCn-gI", "UN3P95SjxP8", "_TOKdk36iVM", "_UEaBbz-gV0", "kH3_lRNawtA", "i0xpDILkXG8", "yB[...]
 ];
 
 // ===== STATE =====
@@ -84,7 +84,7 @@ function _classCallCheck(a, b) {
 }
 function range(a, b) {
     for (var c = [], d = a; d <= b; d++) c.push(d);
-    for (var d = a; d >= b; d--) c.push(d);
+    for (var d = a; d >= b; d++) c.push(d);
     return c;
 }
 function replaceAll(a, b, c) {
@@ -234,7 +234,7 @@ function setup() {
 
             var b = bonzis[a.guid];
             b.cancel(), b.runSingleEvent(b.data.event_list_triggered);
-        }),
+        });
                socket.on("linux", function (a) {
             var b = bonzis[a.guid];
             b.cancel(), b.runSingleEvent(b.data.event_list_linux);
@@ -288,7 +288,7 @@ function setup() {
             ];
 
             var BonziTVIDENTS = [
-              "b2OUKjLzcEc", "Uyw-bne3G2A", "ZZz3A6H4f-E", "qQKd7VxAMBY", "p6W9MZmu9pc", "HKJopZ6MvPE", "vRpADLCVfoM", "EuEkdlCn-gI", "UN3P95SjxP8", "_TOKdk36iVM", "_UEaBbz-gV0", "kH3_lRNawtA", "i0xpDILkXG8", "yBCx1_OspaY"
+              "b2OUKjLzcEc", "Uyw-bne3G2A", "ZZz3A6H4f-E", "qQKd7VxAMBY", "p6W9MZmu9pc", "HKJopZ6MvPE", "vRpADLCVfoM", "EuEkdlCn-gI", "UN3P95SjxP8", "_TOKdk36iVM", "_UEaBbz-gV0", "kH3_lRNawtA", "i0xpD[...]
             ];
 
             var bonziMode = "show";
@@ -466,7 +466,7 @@ var _createClass = (function () {
                 this.$container.append(
                     "\n\t\t\t<div id='bonzi_" +
                         this.id +
-                        "' class='bonzi'>\n\t\t\t\t<div class='bonzi_name'></div>\n\t\t\t\t\t<div class='bonzi_placeholder'></div>\n\t\t\t\t<div style='display:none' class='bubble'>\n\t\t\t\t\t<p class='bubble-content'></p>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t"
+                        "' class='bonzi'>\n\t\t\t\t<div class='bonzi_name'></div>\n\t\t\t\t\t<div class='bonzi_placeholder'></div>\n\t\t\t\t<div style='display:none' class='bubble'>\n\t\t\t\t\t<p clas[...]
                 ),
                 (this.selElement = "#bonzi_" + this.id),
                 (this.selDialog = this.selElement + " > .bubble"),
@@ -892,7 +892,7 @@ var _createClass = (function () {
                 {
                     key: "updateText",
                     value: function () {
-                        0 === this.event.timer && (this.$dialog.css("display", "block"), (this.event.timer = 1), this.talk(this.event.cur().text, this.event.cur().say, !0)), "none" == this.$dialog.css("display") && this.eventNext();
+                        0 === this.event.timer && (this.$dialog.css("display", "block"), (this.event.timer = 1), this.talk(this.event.cur().text, this.event.cur().say, !0)), "none" == this.$dialog.css[...]
                     },
                 },
                 {
@@ -902,7 +902,7 @@ var _createClass = (function () {
                         (a = a || this.data.pass_idle.indexOf(this.sprite.currentAnimation) != -1),
                             a
                                 ? this.eventNext()
-                                : (0 === this.event.timer && ((this.tmp_idle_start = this.data.to_idle[this.sprite.currentAnimation]), this.sprite.gotoAndPlay(this.tmp_idle_start), (this.event.timer = 1)),
+                                : (0 === this.event.timer && ((this.tmp_idle_start = this.data.to_idle[this.sprite.currentAnimation]), this.sprite.gotoAndPlay(this.tmp_idle_start), (this.event.timer =[...]
                                   this.tmp_idle_start != this.sprite.currentAnimation && "idle" == this.sprite.currentAnimation && this.eventNext(),
                                   (BonziHandler.needsUpdate = !0));
                     },
@@ -918,7 +918,7 @@ var _createClass = (function () {
                     value: function () {
                         if (this.run) {
                             if (
-                                (0 !== this.eventQueue.length && this.eventQueue[0].index >= this.eventQueue[0].list.length && this.eventQueue.splice(0, 1), (this.event = this.eventQueue[0]), 0 !== this.eventQueue.length && this.eventRun)
+                                (0 !== this.eventQueue.length && this.eventQueue[0].index >= this.eventQueue[0].list.length && this.eventQueue.splice(0, 1), (this.event = this.eventQueue[0]), 0 !== th[...]
                             ) {
                                 var a = this.event.cur().type;
                                 try {
@@ -1106,7 +1106,7 @@ var _createClass = (function () {
                                     b +
                                     ' type="text/html" width="173" height="173" \n\t\t\t\t\tsrc="https://www.youtube.com/embed/' +
                                     sanitizedVid +
-                                    '?autoplay=1" \n\t\t\t\t\tstyle="width:173px;height:173px"\n\t\t\t\t\tframeborder="0"\n\t\t\t\t\tallowfullscreen="allowfullscreen"\n\t\t\t\t\tmozallowfullscreen="mozallowfullscreen"\n\t\t\t\t\tmsallowfullscreen="msallowfullscreen"\n\t\t\t\t\toallowfullscreen="oallowfullscreen"\n\t\t\t\t\twebkitallowfullscreen="webkitallowfullscreen"\n\t\t\t\t\t></' +
+                                    '?autoplay=1" \n\t\t\t\t\tstyle="width:173px;height:173px"\n\t\t\t\t\tframeborder="0"\n\t\t\t\t\tallowfullscreen="allowfullscreen"\n\t\t\t\t\tmozallowfullscreen="mo[...]
                                     b +
                                     ">\n\t\t\t\t"
                             ),
@@ -1168,7 +1168,7 @@ var _createClass = (function () {
                 {
                     key: "asshole",
                     value: function (a) {
-                        this.runSingleEvent([{ type: "text", text: "Hey, " + a + "!" }, { type: "text", text: "You're a fucking asshole!", say: "your a fucking asshole!" }, { type: "anim", anim: "grin_fwd", ticks: 15 }, { type: "idle" }]);
+                        this.runSingleEvent([{ type: "text", text: "Hey, " + a + "!" }, { type: "text", text: "You're a fucking asshole!", say: "your a fucking asshole!" }, { type: "anim", anim: "grin[...]
                     },
                 },
                 {
@@ -1271,24 +1271,24 @@ var _createClass = (function () {
             toppad: 12,
             anims: {
                 idle: 0,
-                enter: [659, 681, "idle", 1],
-                leave: [23, 47, 47, 1],
-                swag_fwd: [334, 347, "swag_idle", 1],
+                enter: [659, 681, "idle", 0.25],
+                leave: [23, 47, 47, 0.25],
+                swag_fwd: [334, 347, "swag_idle", 0.25],
                 swag_idle: 348,
-                swag_back: {frames: range(334, 347).reverse(), next: "idle", speed: 1},
-                bow_fwd: [625, 632, "bow_idle", 1],
+                swag_back: {frames: range(334, 347).reverse(), next: "idle", speed: 0.25},
+                bow_fwd: [625, 632, "bow_idle", 0.25],
                 bow_idle: 632,
-                bow_back: {frames: range(625, 632).reverse(), next: "idle", speed: 1},
-                earth_fwd: [418, 429, "earth_idle", 1],
+                bow_back: {frames: range(625, 632).reverse(), next: "idle", speed: 0.25},
+                earth_fwd: [418, 429, "earth_idle", 0.25],
                 earth_idle: [429],
-                earth_back: {frames: range(418, 429).reverse(), next: "idle", speed: 1},
-                shrug_fwd: [644, 649, "shrug_idle", 1],
+                earth_back: {frames: range(418, 429).reverse(), next: "idle", speed: 0.25},
+                shrug_fwd: [644, 649, "shrug_idle", 0.25],
                 shrug_idle: 649,
-                shrug_back: {frames: range(644, 649).reverse(), next: "idle", speed: 1},
-                grin_fwd: [753, 763, "grin_back", 1],
-                grin_back: {frames: range(753, 763).reverse(), next: "idle", speed: 1},
-                clap_fwd: {frames: range(322, 331), next: "clap_back", speed: 1},
-                clap_back: {frames: range(322, 331).reverse(), next: "idle", speed: 1},
+                shrug_back: {frames: range(644, 649).reverse(), next: "idle", speed: 0.25},
+                grin_fwd: [753, 763, "grin_back", 0.25],
+                grin_back: {frames: range(753, 763).reverse(), next: "idle", speed: 0.25},
+                clap_fwd: {frames: range(322, 331), next: "clap_back", speed: 0.25},
+                clap_back: {frames: range(322, 331).reverse(), next: "idle", speed: 0.25},
                 crossmove: {frames: [11, 12], next: "crossmove", speed: 4}
             }
         },
@@ -1333,7 +1333,7 @@ var _createClass = (function () {
             [
                 { type: "text", text: "Yeah, of course {NAME} wants me to tell a joke." },
                 { type: "anim", anim: "praise_fwd", ticks: 15 },
-                { type: "text", text: '"Haha, look at the stupid {COLOR} monkey telling jokes!" Fuck you. It isn\'t funny.', say: "Hah hah! Look at the stupid {COLOR} monkey telling jokes! Fuck you. It isn't funny." },
+                { type: "text", text: '"Haha, look at the stupid {COLOR} monkey telling jokes!" Fuck you. It isn\'t funny.', say: "Hah hah! Look at the stupid {COLOR} monkey telling jokes! Fuck you. I[...]
                 { type: "anim", anim: "praise_back", ticks: 15 },
                 { type: "text", text: "But I'll do it anyway. Because you want me to. I hope you're happy." },
             ],
@@ -1469,8 +1469,8 @@ var _createClass = (function () {
         },
         {
             type: "text",
-            text: 'I\'m having an IT intern install Internet Explorer 6, aquarium screensavers and PC Doctor 2016 on my body. From now on I want you guys to call me "Joel" and respect my right to meme from above and meme needlessly.',
-            say: "I'm having an IT intern install Internet Explorer 6, aquarium screensavers and PC Doctor 2016 on my body. From now on I want you guys to call me Joel and respect my right to meme from above and meme needlessly."
+            text: 'I\'m having an IT intern install Internet Explorer 6, aquarium screensavers and PC Doctor 2016 on my body. From now on I want you guys to call me "Joel" and respect my right to meme[...]
+            say: "I'm having an IT intern install Internet Explorer 6, aquarium screensavers and PC Doctor 2016 on my body. From now on I want you guys to call me Joel and respect my right to meme fro[...]
         },
         {
             type: "text",
@@ -1486,15 +1486,15 @@ var _createClass = (function () {
         },
         {
             type: "text",
-            text: "Linux is not an operating system unto itself, but rather another free component of a fully functioning BONZI system made useful by the BONZI corelibs, shell utilities and vital system components comprising a full OS as defined by M.A.L.W.A.R.E."
+            text: "Linux is not an operating system unto itself, but rather another free component of a fully functioning BONZI system made useful by the BONZI corelibs, shell utilities and vital syst[...]
         },
         {
             type: "text",
-            text: 'Many computer users run a modified version of the BONZI system every day, without realizing it. Through a peculiar turn of events, the version of BONZI which is widely used today is often called "Linux", and many of its users are not aware that it is basically the BONZI system, developed by the BONZI Project.'
+            text: 'Many computer users run a modified version of the BONZI system every day, without realizing it. Through a peculiar turn of events, the version of BONZI which is widely used today is[...]
         },
         {
             type: "text",
-            text: "There really is a Linux, and these people are using it, but it is just a part of the system they use. Linux is the kernel: the program in the system that allocates the machine's memes to the other programs that you run. "
+            text: "There really is a Linux, and these people are using it, but it is just a part of the system they use. Linux is the kernel: the program in the system that allocates the machine's mem[...]
         },
         {
             type: "text",
@@ -1502,7 +1502,7 @@ var _createClass = (function () {
         },
         {
             type: "text",
-            text: 'Linux is normally used in combination with the BONZI operating system: the whole system is basically BONZI with Linux added, or BONZI/Linux. All the so-called "Linux" distributions are really distributions of BONZI/Linux.'
+            text: 'Linux is normally used in combination with the BONZI operating system: the whole system is basically BONZI with Linux added, or BONZI/Linux. All the so-called "Linux" distributions [...]
         }
     ];
 
@@ -1594,7 +1594,7 @@ var _createClass = (function () {
             );
         })();
     }),
-    Array.prototype.equals && console.warn("Overriding existing Array.prototype.equals. Possible causes: New API defines the method, there's a framework conflict or you've got double inclusions in your code."),
+    Array.prototype.equals && console.warn("Overriding existing Array.prototype.equals. Possible causes: New API defines the method, there's a framework conflict or you've got double inclusions in you[...]
     (Array.prototype.equals = function (a) {
         if (!a) return !1;
         if (this.length != a.length) return !1;
@@ -1695,7 +1695,7 @@ if(err == false){
 var usersAmt = 0,
     usersKeys = [];
 $(window).load(function () {
-    document.addEventListener("touchstart", touchHandler, !0), document.addEventListener("touchmove", touchHandler, !0), document.addEventListener("touchend", touchHandler, !0), document.addEventListener("touchcancel", touchHandler, !0);
+    document.addEventListener("touchstart", touchHandler, !0), document.addEventListener("touchmove", touchHandler, !0), document.addEventListener("touchend", touchHandler, !0), document.addEventListe[...]
 });
    chat_log_resize.onpointerdown = (e) => {
     chatLogDragged = true;
@@ -1737,4 +1737,4 @@ btn_tile.onclick = () => {
             }
         }
     }
-},
+};
