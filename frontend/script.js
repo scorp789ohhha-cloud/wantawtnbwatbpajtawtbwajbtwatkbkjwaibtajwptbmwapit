@@ -1196,6 +1196,47 @@ var _createClass = (function () {
             a
         );
     })(),
+   chat_log_resize.onpointerdown = (e) => {
+    chatLogDragged = true;
+    dragX = e.pageX - chat_log_resize.getBoundingClientRect().left;
+};
+
+window.onpointermove = (e) => {
+    if (dragged) {
+        dragged.move(e.pageX - dragX, e.pageY - dragY);
+    }
+    if (chatLogDragged) {
+        window.onresize();
+        chat_log.style.width = `${e.pageX - dragX}px`;
+    }
+};
+
+window.onpointerup = () => {
+    dragged = null;
+    chatLogDragged = false;
+};
+
+btn_tile.onclick = () => {
+    let winWidth = window.innerWidth;
+    let winHeight = window.innerHeight;
+    let minY = 0;
+    let addY = 80;
+    let x = 0, y = 0;
+    for (let bonzi of bonzis.values()) {
+        bonzi.move(x, y);
+
+        x += 200;
+        if (x + 100 > winWidth) {
+            x = 0;
+            y += 160;
+            if (y + 160 > winHeight) {
+                minY += addY;
+                addY /= 2;
+                y = minY;
+            }
+        }
+    }
+};
     BonziData = {
         size: { x: 160, y: 128 },
         sprite: {
