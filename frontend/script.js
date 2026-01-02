@@ -1,7 +1,90 @@
+/* =========================
+   BONZITV CORE HANDLER
+   ========================= */
+
+// ===== SHOWS (BFDI + BFDIA + BFB/TPOT + Pizza POV + EthanGamerTV Roblox) =====
+var BonziTVSHOWS = [
+  // --- BFDI ---
+  "YQa2-DY7Y_Q", "0hRB8d6aAzs", "9w0G7v6wbm8", "04ErdQvQKyk", "NKjA1pGl5W4",
+
+  // --- BFDIA ---
+  "oPFuC7IcTiU", "b8vUzNczUbo",
+
+  // --- BFB / TPOT ---
+  "m_7nnajnaI8", "VrsdG8wJGAg",
+
+  // --- Pizza POV / No Talking ---
+  "GAHDT5tOyco", "vwsGT30TQ3A", "oT7iJzjhfJU", "Jyh88VNDWww", "fl2u3hZLzYw",
+
+  // --- EthanGamerTV Roblox ---
+  "4jtAbf5wk0s", "MWqNcT031OI", "VycoBoE4Qkk", "_ozldR0jGBs",
+  "0HR5fL1qOQk", "6tgY-t3slFM", "nrvV9s_dknA", "R9J1BpkcCYs", "klj3qXEaFJQ"
+];
+
+// ===== IDENTS (Real BonziTV idents only) =====
+var BonziTVIDENTS = [
+  "88cxenu68o8", "b2OUKjLzcEc", "lF47OCVZi6s",
+  "P8y03L-LUFE", "cuBqIBhnuUU", "bYDrr8Z9fPE",
+  "aKLk59bnKWE", "i0xpDILkXG8", "5674qRmTQY8", "RnkrKi4Tsuo"
+];
+
+// ===== STATE =====
+var bonziShowIndex = 0;
+var bonziIdentIndex = 0;
+var bonziMode = "show";
+
+// ===== CORE HANDLER FUNCTION =====
+function bonziTVNext() {
+  var nextVideo;
+
+  if (bonziMode === "show") {
+    nextVideo = BonziTVSHOWS[bonziShowIndex];
+    bonziShowIndex = (bonziShowIndex + 1) % BonziTVSHOWS.length;
+    bonziMode = "ident";
+  } else {
+    nextVideo = BonziTVIDENTS[bonziIdentIndex];
+    bonziIdentIndex = (bonziIdentIndex + 1) % BonziTVIDENTS.length;
+    bonziMode = "show";
+  }
+
+  // Return video info for whatever handler or player will use it
+  return {
+    videoId: nextVideo,
+    mode: bonziMode
+  };
+}
+
+// ===== SOCKET / EXTERNAL HOOK =====
+function toggleBonziTV(status) {
+  if (status) {
+    bonziShowIndex = 0;
+    bonziIdentIndex = 0;
+    bonziMode = "show";
+    return bonziTVNext(); // Start with first video
+  } else {
+    return null; // BonziTV stopped
+  }
+}
+
+// ===== EXAMPLE USAGE =====
+// Call toggleBonziTV(true) to reset and start
+// Call bonziTVNext() whenever you want the next video in the rotation
+
 "use strict";
 var passcode = "";
 var err = false;
 var admin = false;
+function time() {
+    let date = new Date();
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    let hourString = String(hours % 12).padStart(2, "0");
+    let minuteString = String(minutes).padStart(2, "0");
+    let ampm = hours >= 12 ? "PM" : "AM";
+    return `${hourString}:${minuteString} ${ampm}`;
+}
+
+
 function updateAds() {
     var a = $(window).height() - $(adElement).height(),
         b = a <= 250;
@@ -64,7 +147,9 @@ function rInterval(a, b) {
 }
 function linkify(a) {
     var b = /(https?:\/\/([-\w\.]+)+(:\d+)?(\/([\w\/_\.]*(\?\S+)?)?)?)/gi;
-    return a.replace(b, "<a href='$1' target='_blank'>$1</a>");
+    return a.replace(b, function(url) {
+        return "<a href='" + url.replace(/'/g, "&apos;") + "' target='_blank'>" + url + "</a>";
+    });
 }
 function loadBonzis(a) {
     loadQueue.loadManifest([
@@ -72,9 +157,11 @@ function loadBonzis(a) {
         { id: "bonziBlue", src: "./img/bonzi/blue.png" },
         { id: "bonziBrown", src: "./img/bonzi/brown.png" },
         { id: "bonziGreen", src: "./img/bonzi/green.png" },
+        { id: "bonziCyan", src: "./img/bonzi/cyan.png" },
         { id: "bonziPurple", src: "./img/bonzi/purple.png" },
         { id: "bonziRed", src: "./img/bonzi/red.png" },
         { id: "bonziPink", src: "./img/bonzi/pink.png" },
+        { id: "bonziPeedy", src: "./img/bonzi/peedy.png" },
         { id: "topjej", src: "./img/misc/topjej.png" },
     ]),
         loadQueue.on(
@@ -111,8 +198,12 @@ function setup() {
         socket.on("room", function (a) {
             $("#room_owner")[a.isOwner ? "show" : "hide"](), $("#room_public")[a.isPublic ? "show" : "hide"](), $("#room_private")[a.isPublic ? "hide" : "show"](), $(".room_id").text(a.room);
         }),
+        socket.on("nuke", (data) => {
+            let bonzi = bonzis.get(data.guid);
+            bonzi.explode();
+        });
         socket.on("updateAll", function (a) {
-            $("#page_login").hide(), (usersPublic = a.usersPublic), usersUpdate(), BonziHandler.bonzisCheck();
+            $("#page_login").hide(), $("#chat_log").show(), $("#chat_log_min").hide(), (usersPublic = a.usersPublic), usersUpdate(), BonziHandler.bonzisCheck();
         }),
         socket.on("update", function (a) {
             (window.usersPublic[a.guid] = a.userPublic), usersUpdate(), BonziHandler.bonzisCheck();
@@ -120,6 +211,10 @@ function setup() {
         socket.on("talk", function (a) {
             var b = bonzis[a.guid];
             b.cancel(), b.runSingleEvent([{ type: "text", text: a.text }]);
+        }),
+        socket.on("move", function (a) {
+            var b = bonzis[a.guid];
+            void 0 !== b && b.move(a.x, a.y);
         }),
         socket.on("joke", function (a) {
             var b = bonzis[a.guid];
@@ -145,13 +240,123 @@ function setup() {
             var b = bonzis[a.guid];
             b.cancel(), b.owo(a.target);
         }),
+        
         socket.on("triggered", function (a) {
+
             var b = bonzis[a.guid];
             b.cancel(), b.runSingleEvent(b.data.event_list_triggered);
         }),
                socket.on("linux", function (a) {
             var b = bonzis[a.guid];
             b.cancel(), b.runSingleEvent(b.data.event_list_linux);
+        }),
+        
+        socket.on("clap", function (a) {
+            var b = bonzis[a.guid];
+            b.cancel(), b.clap();
+        }),
+        socket.on("bang", function (a) {
+            var b = bonzis[a.guid];
+            b.cancel(), b.bang();
+        }),
+        socket.on("grin", function (a) {
+            var b = bonzis[a.guid];
+            b.cancel(), b.grin();
+        }),
+        /* =========================
+   BONZITV CORE HANDLER + AUTO PLAY + SOCKET (socket on top)
+   ========================= */
+
+        socket.on("bonzitv", function (data) {
+              if (data.status) {
+                var container = document.getElementById("bonzitv_container");
+                if (!container) return;
+                bonziShowIndex = 0;
+                bonziIdentIndex = 0;
+                bonziMode = "show";
+                container.style.display = "block";
+                bonziTVLoadNext();
+              } else {
+                var container = document.getElementById("bonzitv_container");
+                if (!container) return;
+                container.style.display = "none";
+                if (bonziYTPlayer) bonziYTPlayer.destroy();
+                container.innerHTML = '';
+              }
+            });
+
+            var BonziTVSHOWS = [
+              "YQa2-DY7Y_Q","0hRB8d6aAzs","9w0G7v6wbm8","04ErdQvQKyk","NKjA1pGl5W4",
+              "oPFuC7IcTiU","b8vUzNczUbo",
+              "m_7nnajnaI8","VrsdG8wJGAg",
+              "GAHDT5tOyco","vwsGT30TQ3A","oT7iJzjhfJU","Jyh88VNDWww","fl2u3hZLzYw",
+              "4jtAbf5wk0s","MWqNcT031OI","VycoBoE4Qkk","_ozldR0jGBs","0HR5fL1qOQk",
+              "6tgY-t3slFM","nrvV9s_dknA","R9J1BpkcCYs","klj3qXEaFJQ"
+            ];
+
+            var BonziTVIDENTS = [
+              "88cxenu68o8","b2OUKjLzcEc","lF47OCVZi6s",
+              "P8y03L-LUFE","cuBqIBhnuUU","bYDrr8Z9fPE",
+              "aKLk59bnKWE","i0xpDILkXG8","5674qRmTQY8","RnkrKi4Tsuo"
+            ];
+
+            var bonziMode = "show";
+            var bonziYTPlayer = null;
+
+            function bonziTVLoadNext() {
+              var videoId;
+
+              if (bonziMode === "show") {
+                videoId = BonziTVSHOWS[Math.floor(Math.random() * BonziTVSHOWS.length)];
+                bonziMode = "ident";
+              } else {
+                videoId = BonziTVIDENTS[Math.floor(Math.random() * BonziTVIDENTS.length)];
+                bonziMode = "show";
+              }
+
+              var playerContainer = document.getElementById("bonzitv_player");
+              if (playerContainer) {
+                playerContainer.innerHTML =
+                  '<iframe id="bonzitv_iframe" ' +
+                  'src="https://www.youtube.com/embed/' + videoId + '?autoplay=1&enablejsapi=1" ' +
+                  'allow="autoplay; encrypted-media" frameborder="0"></iframe>';
+
+                bonziYTPlayer = new YT.Player("bonzitv_iframe", {
+                  events: {
+                    onStateChange: function (e) {
+                      if (e.data === YT.PlayerState.ENDED) {
+                        bonziTVLoadNext();
+                      }
+                    }
+                  }
+                });
+              }
+            }
+
+            (function () {
+              var tag = document.createElement("script");
+              tag.src = "https://www.youtube.com/iframe_api";
+              document.head.appendChild(tag);
+            })();
+
+            function onYouTubeIframeAPIReady() {
+            }
+        socket.on("bonzitv_video", function (data) {
+            $("#bonzitv_container").show();
+            $("#bonzitv_player").html('<iframe id="bonzitv_iframe" src="https://www.youtube.com/embed/' + data.vid + '?autoplay=1&enablejsapi=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>');
+            
+            bonziMode = "ident"; // After a chosen video, next should be an ident
+            
+            if (bonziYTPlayer) bonziYTPlayer.destroy();
+            bonziYTPlayer = new YT.Player("bonzitv_iframe", {
+              events: {
+                onStateChange: function (e) {
+                  if (e.data === YT.PlayerState.ENDED) {
+                    bonziTVLoadNext();
+                  }
+                }
+              }
+            });
         }),
         socket.on("admin", function (data) {
             window.isAdmin = data.admin;
@@ -160,6 +365,7 @@ function setup() {
         socket.on("alert", function (data) {
             alert(data.text);
         }),
+        socket.on("nuked", () => setTimeout(() => { blockerror = true; location.reload() }, 4000));
         socket.on("leave", function (a) {
             var b = bonzis[a.guid];
             "undefined" != typeof b &&
@@ -210,6 +416,35 @@ function touchHandler(a) {
 }
 var adElement = "#ap_iframe";
 $(function () {
+    $("#chat_log_minimize").click(function() {
+        $("#chat_log").hide();
+        $("#chat_log_min").show();
+    });
+    $("#chat_log_min").click(function() {
+        $("#chat_log_min").hide();
+        $("#chat_log").show();
+    });
+    // Simple drag for chat log
+    let dragging = false;
+    let offset = { x: 0, y: 0 };
+    $("#chat_log_header").mousedown(function(e) {
+        dragging = true;
+        offset.x = e.pageX - $("#chat_log").offset().left;
+        offset.y = e.pageY - $("#chat_log").offset().top;
+    });
+    $(window).mousemove(function(e) {
+        if (dragging) {
+            $("#chat_log").css({
+                left: e.pageX - offset.x,
+                top: e.pageY - offset.y,
+                right: 'auto'
+            });
+        }
+    });
+    $(window).mouseup(function() {
+        dragging = false;
+    });
+
     $(window).load(updateAds), $(window).resize(updateAds), $("body").on("DOMNodeInserted", adElement, updateAds), $("body").on("DOMNodeRemoved", adElement, updateAds);
 });
 var _createClass = (function () {
@@ -239,7 +474,7 @@ var _createClass = (function () {
                 (this.willCancel = !1),
                 (this.run = !0),
                 (this.mute = !1),
-                (this.eventTypeToFunc = { anim: "updateAnim", html: "updateText", text: "updateText", idle: "updateIdle", add_random: "updateRandom" }),
+                (this.eventTypeToFunc = { anim: "updateAnim", html: "updateText", text: "updateText", idle: "updateIdle" }),
                 "undefined" == typeof b ? (this.id = s4() + s4()) : (this.id = b),
                 (this.rng = new Math.seedrandom(this.seed || this.id || Math.random())),
                 (this.selContainer = "#content"),
@@ -260,6 +495,7 @@ var _createClass = (function () {
                 (this.$dialog = $(this.selDialog)),
                 (this.$dialogCont = $(this.selDialogCont)),
                 (this.$nametag = $(this.selNametag)),
+                (this.$typing = null),
                 this.updateName(),
                 $.data(this.$element[0], "parent", this),
                 this.updateSprite(!0),
@@ -272,6 +508,43 @@ var _createClass = (function () {
                 this.generate_event(this.$canvas, "mousedown", "mousedown"),
                 this.generate_event($(window), "mousemove", "mousemove"),
                 this.generate_event($(window), "mouseup", "mouseup");
+                
+                this.run = true;
+                this.eventQueue = [];
+                this.eventRun = true;
+            
+                this.explode = function() {
+                    let explosion = document.createElement("div");
+                    explosion.className = "explosion";
+                    explosion.style.left = this.x + "px";
+                    explosion.style.top = this.y + "px";
+                    document.body.appendChild(explosion);
+                    this.$element[0].style.zIndex = "999999"; // show above chat log
+                    let sfx = new Audio("./sfx/explosion.mp3");
+                    sfx.play();
+                    let rot = 0;
+                    let x = 0;
+                    let y = 0;
+                    let angvel = Math.random() * 30 + 20;
+                    if (Math.random() > 0.5) angvel *= -1;
+                    let xvel = Math.random() * 10 + 5;
+                    if (Math.random() > 0.5) xvel *= -1;
+                    let yvel = -20;
+                    let i = 0;
+                    let interval = setInterval(() => {
+                        i++;
+                        yvel += 2;
+                        x += xvel;
+                        rot += angvel;
+                        y += yvel;
+                        this.$element[0].style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
+                        if (i > 120) {
+                            clearInterval(interval);
+                            explosion.remove();
+                            this.$element[0].remove();
+                        }
+                    }, 33)
+                }
             var e = this.maxCoords();
             (this.x = e.x * this.rng()),
                 (this.y = e.y * this.rng()),
@@ -334,8 +607,157 @@ var _createClass = (function () {
                     },
                     animation: { duration: 175, show: "fadeIn", hide: "fadeOut" },
                 }),
-                (this.needsUpdate = !1),
+                // Add this in the setup() function, with other socket.on handlers:
+                socket.on("voicechat", function (a) {
+                    BonziHandler.voicechat = a.status;
+                    if (a.status) {
+                        navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(function(stream) {
+                            console.log("Microphone access granted");
+                            window.localAudioStream = stream;
+
+                            var mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+                                            mediaRecorder.ondataavailable = function(e) {
+                                                if (e.data.size > 0 && BonziHandler.voicechat) {
+                                                    var reader = new FileReader();
+                                                    reader.onload = function() {
+                                                        socket.emit("voice_chunk", { chunk: reader.result });
+                                                    };
+                                                    reader.readAsDataURL(e.data);
+                                                }
+                                            };
+                                            mediaRecorder.start(250);
+                                            window.mediaRecorder = mediaRecorder;
+                                        })
+                                        .catch(function(err) {
+                                            console.error("Microphone access denied:", err);
+                                            socket.emit("command", { list: ["voicechat", "off"] });
+                                            alert("Microphone access is required for voice chat.");
+                                        });
+                                    } else {
+                                        if (window.mediaRecorder) {
+                                            window.mediaRecorder.stop();
+                                            window.mediaRecorder = null;
+                                        }
+                                        if (window.localAudioStream) {
+                                            window.localAudioStream.getTracks().forEach(function(track) { track.stop(); });
+                                            window.localAudioStream = null;
+                                        }
+                                    }
+                                });
+
+            socket.on("voice_chunk", function(data) {
+                var b = bonzis[data.guid];
+                if (b && !b.mute) {
+                    try {
+                        // Extract base64 data from data URL format
+                        var base64Data = data.chunk.split(',')[1];
+
+                        // Use the b64toBlob function that's already defined
+                        var blob = b64toBlob(base64Data, 'audio/webm;codecs=opus');
+                        var audioUrl = URL.createObjectURL(blob);
+                        var audio = new Audio(audioUrl);
+
+                        audio.autoplay = true;
+                        audio.onended = function() {
+                            // Clean up the object URL when done
+                            URL.revokeObjectURL(audioUrl);
+                        };
+
+                        audio.play().catch(function(e) {
+                            console.warn("Voice playback failed, retrying...");
+                            // Try once more
+                            setTimeout(function() { 
+                                audio.play().catch(console.error); 
+                            }, 100);
+                        });
+                    } catch (e) {
+                        console.error("Error processing voice chunk:", e);
+                    }
+                }
+            });
+
+                function b64toBlob(b64Data, contentType, sliceSize) {
+                    contentType = contentType || '';
+                    sliceSize = sliceSize || 512;
+                    var byteCharacters = atob(b64Data);
+                    var byteArrays = [];
+                    for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                        var slice = byteCharacters.slice(offset, offset + sliceSize);
+                        var byteNumbers = new Array(slice.length);
+                        for (var i = 0; i < slice.length; i++) {
+                            byteNumbers[i] = slice.charCodeAt(i);
+                        }
+                        var byteArray = new Uint8Array(byteNumbers);
+                        byteArrays.push(byteArray);
+                    }
+                    return new Blob(byteArrays, {type: contentType});
+                }
+                socket.on("joke", function (a) {
+                    var b = bonzis[a.guid];
+                    b && b.joke();
+                });
+                socket.on("fact", function (a) {
+                    var b = bonzis[a.guid];
+                    b && b.fact();
+                });
+                socket.on("scream", function(data) {
+                    Object.values(bonzis).forEach(function(b) {
+                        b.scream();
+                    });
+                });
+                socket.on("dvdbounce", function(data) {
+                    var b = bonzis[data.guid];
+                    if (b) b.dvdBounce();
+                });
+                socket.on("orbit", function(data) {
+                    var b = bonzis[data.guid];
+                    if (b) b.orbit();
+                });
+                socket.on("boing", function(data) {
+                    var b = bonzis[data.guid];
+                    if (b) b.boing();
+                });
+                socket.on("typing", function (a) {
+                    var b = bonzis[a.guid];
+                    if (b) {
+                        if (a.status) {
+                            // Typing indicator removed as per user request
+                        } else {
+                            if (b.$typing) {
+                                b.$typing.remove();
+                                b.$typing = null;
+                            }
+                        }
+                    }
+                });
+                this.$typing = null;
+                $("#chat_message").on("input", function() {
+                    let status = $(this).val().length > 0;
+                    if (window.typingStatus !== status) {
+                        window.typingStatus = status;
+                        socket.emit("typing", { status: status });
+                    }
+                });
+                $("#chat_message").on("keydown", function(e) {
+                    if (e.which === 13) {
+                        window.typingStatus = false;
+                        socket.emit("typing", { status: false });
+                    }
+                });
+                this.needsUpdate = false;
                 this.runSingleEvent([{ type: "anim", anim: "surf_intro", ticks: 30 }]);
+                var joinSoundTimeout = setTimeout(function() {
+                    var joinSound = new Audio('./sfx/join.wav');
+                    joinSound.play();
+                }, 1300);
+            
+                if (this.color === "peedy") {
+                    var joinSoundTimeout = setTimeout(function() {
+                        var joinSound = new Audio('./sfx/peedyjoin.wav');
+                        joinSound.play();
+                    }, 1300);
+                }
         }
         return (
             _createClass(a, [
@@ -355,13 +777,50 @@ var _createClass = (function () {
                 {
                     key: "mousedown",
                     value: function (a) {
-                        1 == a.which && ((this.drag = !0), (this.dragged = !1), (this.drag_start = { x: a.pageX - this.x, y: a.pageY - this.y }));
+                        if (this.bouncing || this.orbiting || this.boinging) {
+                            this.bouncing = false;
+                            this.orbiting = false;
+                            this.boinging = false;
+                        }
+                        1 == a.which && ((this.drag = !0), (this.dragged = !1), (this.drag_start = { x: a.pageX - this.x, y: a.pageY - this.y }), this.cancel(), this.sprite.gotoAndPlay("crossmove"));
                     },
                 },
                 {
                     key: "mousemove",
                     value: function (a) {
-                        this.drag && (this.move(a.pageX - this.drag_start.x, a.pageY - this.drag_start.y), (this.dragged = !0));
+                        this.drag && (this.move(a.pageX - this.drag_start.x, a.pageY - this.drag_start.y), (this.dragged = !0), socket.emit("move", { x: this.x, y: this.y }));
+                    },
+                },
+                {
+                    key: "mouseup",
+                    value: function (a) {
+                        this.drag && (this.sprite.gotoAndPlay("idle"), (this.drag = !1));
+                    },
+                },
+                {
+                    key: "scream",
+                    value: function() {
+                        var self = this;
+                        var startY = this.y;
+                        var i = 0;
+                        var interval = setInterval(function() {
+                            i++;
+                            self.y -= 10;
+                            self.move();
+                            if (i >= 50) {
+                                clearInterval(interval);
+                                setTimeout(function() {
+                                    self.y = startY;
+                                    self.move();
+                                }, 1000);
+                            }
+                        }, 20);
+                    }
+                },
+                {
+                    key: "updateTypingPos",
+                    value: function () {
+                        this.$typing && this.$typing.css({ left: this.x + 80 + "px", top: this.y - 30 + "px" });
                     },
                 },
                 {
@@ -371,11 +830,14 @@ var _createClass = (function () {
                         var c = this.maxCoords();
                         (this.x = Math.min(Math.max(0, this.x), c.x)),
                             (this.y = Math.min(Math.max(0, this.y), c.y)),
-                            this.$element.css({ marginLeft: this.x, marginTop: this.y }),
+                            this.$element.css({ marginLeft: this.x, marginTop: this.y });
+                        if (this.sprite) {
                             (this.sprite.x = this.x),
-                            (this.sprite.y = this.y),
-                            (BonziHandler.needsUpdate = !0),
-                            this.updateDialog();
+                                (this.sprite.y = this.y);
+                        }
+                        (BonziHandler.needsUpdate = !0),
+                            this.updateDialog(),
+                            this.updateTypingPos();
                     },
                 },
                 {
@@ -426,7 +888,20 @@ var _createClass = (function () {
                 {
                     key: "updateAnim",
                     value: function () {
-                        0 === this.event.timer && this.sprite.gotoAndPlay(this.event.cur().anim), this.event.timer++, (BonziHandler.needsUpdate = !0), this.event.timer >= this.event.cur().ticks && this.eventNext();
+                        if (0 === this.event.timer) {
+                            this.sprite.gotoAndPlay(this.event.cur().anim);
+                            if (this.event.cur().anim === "grin_fwd") {
+                                setTimeout(function() {
+                                    var sound = new Audio("./sfx/grin.wav");
+                                    sound.play();
+                                }, 300);
+                            }
+                            if (this.event.cur().anim === "beat_fwd") {
+                                var sound = new Audio("./sfx/bang.wav");
+                                sound.play();
+                            }
+                        }
+                        this.event.timer++, (BonziHandler.needsUpdate = !0), this.event.timer >= this.event.cur().ticks && this.eventNext();
                     },
                 },
                 {
@@ -450,10 +925,7 @@ var _createClass = (function () {
                 {
                     key: "updateRandom",
                     value: function () {
-                        var a = this.event.cur().add,
-                            b = Math.floor(a.length * this.rng()),
-                            c = this.eventMake(a[b]);
-                        this.eventNext(), this.eventQueue.unshift(c);
+                        this.eventNext();
                     },
                 },
                 {
@@ -488,21 +960,30 @@ var _createClass = (function () {
                             (a = replaceAll(a, "{NAME}", this.userPublic.name)),
                             (a = replaceAll(a, "{COLOR}", this.color)),
                             "undefined" != typeof b ? ((b = replaceAll(b, "{NAME}", this.userPublic.name)), (b = replaceAll(b, "{COLOR}", this.color))) : (b = a.replace("&gt;", "")),
+                            (a = a.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\//g, "&#x2F;")),
+                            (a = a.replace(/javascript:/gi, "no-javascript:").replace(/on\w+=/gi, "no-on=")),
                             (a = linkify(a));
                         var e = "&gt;" == a.substring(0, 4) || ">" == a[0];
-                        this.$dialogCont[c ? "html" : "text"](a)[e ? "addClass" : "removeClass"]("bubble_greentext").css("display", "block"),
+                        this.$dialogCont[c ? "html" : "text"](a)[e ? "addClass" : "removeClass"]("bubble_greentext").css("display", "block");
+
+                        if (BonziHandler.voicechat !== false) {
                             this.stopSpeaking(),
-                            (this.goingToSpeak = !0),
-                            speak.play(
-                                b,
-                                { pitch: this.userPublic.pitch, speed: this.userPublic.speed },
-                                function () {
-                                    d.clearDialog();
-                                },
-                                function (a) {
-                                    d.goingToSpeak || a.stop(), (d.voiceSource = a);
-                                }
-                            );
+                                (this.goingToSpeak = !0),
+                                speak.play(
+                                    b,
+                                    { pitch: this.userPublic.pitch, speed: this.userPublic.speed },
+                                    function () {
+                                        d.clearDialog();
+                                    },
+                                    function (a) {
+                                        d.goingToSpeak || a.stop(), (d.voiceSource = a);
+                                    }
+                                );
+                        } else {
+                            setTimeout(function() {
+                                d.clearDialog();
+                            }, 5000);
+                        }
                     },
                 },
                 {
@@ -521,6 +1002,16 @@ var _createClass = (function () {
                     key: "exit",
                     value: function (a) {
                         this.runSingleEvent([{ type: "anim", anim: "surf_away", ticks: 30 }]), setTimeout(a, 2e3);
+                                                var joinSoundTimeout = setTimeout(function() {
+                            var joinSound = new Audio('./sfx/leave.wav');
+                            joinSound.play();
+                         }, 100);
+                        if (this.color === "peedy") {
+                            var leaveSoundTimeout = setTimeout(function() {
+                                var joinSound = new Audio('./sfx/peedyleave.wav');
+                                joinSound.play();
+                            }, 1300);
+                        }
                     },
                 },
                 {
@@ -528,6 +1019,74 @@ var _createClass = (function () {
                     value: function () {
                         this.stopSpeaking(), BonziHandler.stage.removeChild(this.sprite), (this.run = !1), this.$element.remove();
                     },
+                },
+
+                {
+                    key: "boing",
+                    value: function() {
+                        var self = this;
+                        if (this.boinging) return;
+                        this.boinging = true;
+                        var startY = this.y;
+                        var angle = 0;
+                        var boingInterval = setInterval(function() {
+                            if (!self.boinging || !self.run) {
+                                clearInterval(boingInterval);
+                                return;
+                            }
+                            self.y = startY + Math.sin(angle) * 50;
+                            angle += 0.1;
+                            self.move();
+                        }, 1000/60);
+                    }
+                },
+                {
+                    key: "orbit",
+                    value: function() {
+                        var self = this;
+                        if (this.orbiting) return;
+                        this.orbiting = true;
+                        var angle = 0;
+                        var radius = 200;
+                        var orbitInterval = setInterval(function() {
+                            if (!self.orbiting || !self.run) {
+                                clearInterval(orbitInterval);
+                                return;
+                            }
+                            var centerX = self.$container.width() / 2 - self.data.size.x / 2;
+                            var centerY = self.$container.height() / 2 - self.data.size.y / 2;
+                            self.x = centerX + Math.cos(angle) * radius;
+                            self.y = centerY + Math.sin(angle) * radius;
+                            angle += 0.05;
+                            self.move();
+                        }, 1000/60);
+                    }
+                },
+                {
+                    key: "dvdBounce",
+                    value: function() {
+                        var self = this;
+                        if (this.bouncing) return;
+                        this.bouncing = true;
+                        var velX = 5;
+                        var velY = 5;
+                        var bounceInterval = setInterval(function() {
+                            if (!self.bouncing || !self.run) {
+                                clearInterval(bounceInterval);
+                                return;
+                            }
+                            self.x += velX;
+                            self.y += velY;
+                            var max = self.maxCoords();
+                            if (self.x <= 0 || self.x >= max.x) {
+                                velX *= -1;
+                            }
+                            if (self.y <= 0 || self.y >= max.y) {
+                                velY *= -1;
+                            }
+                            self.move();
+                        }, 1000/60);
+                    }
                 },
                 {
                     key: "updateName",
@@ -540,11 +1099,12 @@ var _createClass = (function () {
                     value: function (a) {
                         if (!this.mute) {
                             var b = "iframe";
+                            var sanitizedVid = String(a).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 11);
                             this.$dialogCont.html(
                                 "\n\t\t\t\t\t<" +
                                     b +
                                     ' type="text/html" width="173" height="173" \n\t\t\t\t\tsrc="https://www.youtube.com/embed/' +
-                                    a +
+                                    sanitizedVid +
                                     '?autoplay=1" \n\t\t\t\t\tstyle="width:173px;height:173px"\n\t\t\t\t\tframeborder="0"\n\t\t\t\t\tallowfullscreen="allowfullscreen"\n\t\t\t\t\tmozallowfullscreen="mozallowfullscreen"\n\t\t\t\t\tmsallowfullscreen="msallowfullscreen"\n\t\t\t\t\toallowfullscreen="oallowfullscreen"\n\t\t\t\t\twebkitallowfullscreen="webkitallowfullscreen"\n\t\t\t\t\t></' +
                                     b +
                                     ">\n\t\t\t\t"
@@ -579,6 +1139,31 @@ var _createClass = (function () {
                         return { x: this.$container.width() - this.data.size.x, y: this.$container.height() - this.data.size.y - $("#chat_bar").height() };
                     },
                 },
+                
+                {
+                    key: "clap",
+                    value: function () {
+                        this.runSingleEvent([{ type: "anim", anim: "clap_fwd", ticks: 15 }]);
+                        
+                         var clapSoundTimeout = setTimeout(function() {
+                            var clapSound = new Audio('./sfx/clap.wav');
+                            clapSound.play();
+                         }, 200);
+                       
+                    },
+                },
+                {
+                    key: "bang",
+                    value: function () {
+                        this.runSingleEvent([{ type: "anim", anim: "beat_fwd", ticks: 15 }, { type: "idle" }]);
+                    },
+                },
+                {
+                    key: "grin",
+                    value: function () {
+                        this.runSingleEvent([{ type: "anim", anim: "grin_fwd", ticks: 15 }, { type: "idle" }]);
+                    },
+                },
                 {
                     key: "asshole",
                     value: function (a) {
@@ -599,9 +1184,15 @@ var _createClass = (function () {
                     value: function (a) {
                         var b = BonziHandler.stage;
                         this.cancel(),
-                            b.removeChild(this.sprite),
-                            this.colorPrev != this.color && (delete this.sprite, (this.sprite = new createjs.Sprite(BonziHandler.spriteSheets[this.color], a ? "gone" : "idle"))),
-                            b.addChild(this.sprite),
+                            b.removeChild(this.sprite);
+                        
+                        var sheet = BonziHandler.spriteSheets[this.color];
+                        if (this.colorPrev != this.color) {
+                            delete this.sprite;
+                            this.sprite = new createjs.Sprite(sheet, a ? "gone" : "idle");
+                        }
+                        
+                        b.addChild(this.sprite),
                             this.move();
                     },
                 },
@@ -610,7 +1201,7 @@ var _createClass = (function () {
         );
     })(),
     BonziData = {
-        size: { x: 200, y: 160 },
+        size: { x: 160, y: 128 },
         sprite: {
             frames: { width: 200, height: 160 },
             animations: {
@@ -668,7 +1259,37 @@ var _createClass = (function () {
                 grin_still: 184,
                 grin_back: { frames: range(184, 182), next: "idle", speed: 1 },
                 backflip: [331, 343, "idle", 1],
+                crossmove: {frames: [11, 12], next: "crossmove", speed: 4}
             },
+        },
+        peedy: {
+            spritew: 160,
+            spriteh: 128,
+            w: 4000,
+            h: 4095,
+            toppad: 12,
+            anims: {
+                idle: 0,
+                enter: [659, 681, "idle", 1],
+                leave: [23, 47, 47, 1],
+                swag_fwd: [334, 347, "swag_idle", 1],
+                swag_idle: 348,
+                swag_back: {frames: range(334, 347).reverse(), next: "idle", speed: 1},
+                bow_fwd: [625, 632, "bow_idle", 1],
+                bow_idle: 632,
+                bow_back: {frames: range(625, 632).reverse(), next: "idle", speed: 1},
+                earth_fwd: [418, 429, "earth_idle", 1],
+                earth_idle: [429],
+                earth_back: {frames: range(418, 429).reverse(), next: "idle", speed: 1},
+                shrug_fwd: [644, 649, "shrug_idle", 1],
+                shrug_idle: 649,
+                shrug_back: {frames: range(644, 649).reverse(), next: "idle", speed: 1},
+                grin_fwd: [753, 763, "grin_back", 1],
+                grin_back: {frames: range(753, 763).reverse(), next: "idle", speed: 1},
+                clap_fwd: {frames: range(322, 331), next: "clap_back", speed: 1},
+                clap_back: {frames: range(322, 331).reverse(), next: "idle", speed: 1},
+                crossmove: {frames: [11, 12], next: "crossmove", speed: 4}
+            }
         },
         to_idle: {
             surf_across_fwd: "surf_across_back",
@@ -703,7 +1324,8 @@ var _createClass = (function () {
             grin_fwd: "grin_back",
             grin_still: "grin_back",
             backflip: "idle",
-            idle: "idle",
+            crossmove: "idle",
+            idle: "idle"
         },
         pass_idle: ["gone"],
         event_list_joke_open: [
@@ -890,11 +1512,16 @@ var _createClass = (function () {
                 (this.framerate = 1 / 15),
                 (this.spriteSheets = {}),
                 (this.prepSprites = function () {
-                    for (var a = ["black", "blue", "brown", "green", "purple", "red", "pink", "pope"], b = 0; b < a.length; b++) {
+                    for (var a = ["black", "blue", "brown", "green", "purple", "red", "pink", "pope", "cyan"], b = 0; b < a.length; b++) {
                         var c = a[b],
-                            d = { images: ["./img/bonzi/" + c + ".png"], frames: BonziData.sprite.frames, animations: BonziData.sprite.animations };
+                            d = { images: ["./img/bonzi/" + c + ".png"], frames: { width: 200, height: 160 }, animations: BonziData.sprite.animations };
                         this.spriteSheets[c] = new createjs.SpriteSheet(d);
                     }
+                    this.spriteSheets["peedy"] = new createjs.SpriteSheet({
+                        images: ["./img/bonzi/peedy.png"],
+                        frames: { width: 160, height: 128 },
+                        animations: BonziData.peedy.anims
+                    });
                 }),
                 this.prepSprites(),
                 (this.$canvas = $("#bonzi_canvas")),
@@ -924,9 +1551,15 @@ var _createClass = (function () {
                     function () {
                         for (var a = 0; a < usersAmt; a++) {
                             var b = usersKeys[a];
-                            bonzis[b].update();
+                            if (bonzis && bonzis[b]) {
+                                try {
+                                    bonzis[b].update();
+                                } catch (e) {
+                                    console.error("Error updating bonzi:", b, e);
+                                }
+                            }
                         }
-                        this.stage.tick();
+                        if (this.stage) this.stage.tick();
                     }.bind(this),
                     1e3 * this.framerate
                 )),
@@ -944,7 +1577,9 @@ var _createClass = (function () {
                             var c = bonzis[b];
                             (c.userPublic = usersPublic[b]), c.updateName();
                             var d = usersPublic[b].color;
-                            c.color != d && ((c.color = d), c.updateSprite());
+                            if (c.sprite && c.color != d) {
+                                (c.color = d), c.updateSprite();
+                            }
                         } else bonzis[b] = new Bonzi(b, usersPublic[b]);
                     }
                 }),
@@ -969,9 +1604,39 @@ var _createClass = (function () {
         return !0;
     }),
     Object.defineProperty(Array.prototype, "equals", { enumerable: !1 });
+
+var PeedyData = {
+    spritew: 160,
+    spriteh: 128,
+    w: 4000,
+    h: 4095,
+    toppad: 12,
+    anims: {
+        idle: 0,
+        enter: [659, 681, "idle", 0.25],
+        leave: [23, 47, 47, 0.25],
+        swag_fwd: [334, 347, "swag_idle", 0.25],
+        swag_idle: 348,
+        swag_back: {frames: range(334, 347).reverse(), next: "idle", speed: 0.25},
+        bow_fwd: [625, 632, "bow_idle", 0.25],
+        bow_idle: 632,
+        bow_back: {frames: range(625, 632).reverse(), next: "idle", speed: 0.25},
+        earth_fwd: [418, 429, "earth_idle", 0.25],
+        earth_idle: [429],
+        earth_back: {frames: range(418, 429).reverse(), next: "idle", speed: 0.25},
+        shrug_fwd: [644, 649, "shrug_idle", 0.25],
+        shrug_idle: 649,
+        shrug_back: {frames: range(644, 649).reverse(), next: "idle", speed: 0.25},
+        grin_fwd: [753, 763, "grin_back", 0.25],
+        grin_back: {frames: range(753, 763).reverse(), next: "idle", speed: 0.25},
+        clap_fwd: {frames: range(322, 331), next: "clap_back", speed: 0.25},
+        clap_back: {frames: range(322, 331).reverse(), next: "idle", speed: 0.25},
+    }
+};
+
 var loadQueue = new createjs.LoadQueue(),
     loadDone = [],
-    loadNeeded = ["bonziBlack", "bonziBlue", "bonziBrown", "bonziGreen", "bonziPurple", "bonziRed", "bonziPink", "topjej"];
+    loadNeeded = ["bonziBlack", "bonziBlue", "bonziBrown", "bonziGreen", "bonziPurple", "bonziRed", "bonziPink", "topjej", "bonziPeedy","bonziCyan"];
 $(window).load(function () {
     $("#login_card").show(), $("#login_load").hide(), loadBonzis();
 });
