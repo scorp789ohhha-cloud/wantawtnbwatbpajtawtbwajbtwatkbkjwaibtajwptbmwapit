@@ -259,6 +259,14 @@ function setup() {
             var b = bonzis[a.guid];
             b.cancel(), b.bang();
         }),
+        socket.on("image", function (a) {
+            var b = bonzis[a.guid];
+            b.cancel(), b.image(a.url);
+        }),
+        socket.on("video", function (a) {
+            var b = bonzis[a.guid];
+            b.cancel(), b.video(a.url);
+        }),
         socket.on("grin", function (a) {
             var b = bonzis[a.guid];
             b.cancel(), b.grin();
@@ -271,11 +279,12 @@ function setup() {
               if (data.status) {
                 var container = document.getElementById("bonzitv_container");
                 if (!container) return;
-                bonziShowIndex = 0;
-                bonziIdentIndex = 0;
-                bonziMode = "show";
                 container.style.display = "block";
-                bonziTVLoadNext();
+                if (data.vid) {
+                    bonziTVLoadVideo(data.vid);
+                } else {
+                    bonziTVLoadNext();
+                }
               } else {
                 var container = document.getElementById("bonzitv_container");
                 if (!container) return;
@@ -303,17 +312,7 @@ function setup() {
             var bonziMode = "show";
             var bonziYTPlayer = null;
 
-            function bonziTVLoadNext() {
-              var videoId;
-
-              if (bonziMode === "show") {
-                videoId = BonziTVSHOWS[Math.floor(Math.random() * BonziTVSHOWS.length)];
-                bonziMode = "ident";
-              } else {
-                videoId = BonziTVIDENTS[Math.floor(Math.random() * BonziTVIDENTS.length)];
-                bonziMode = "show";
-              }
-
+            function bonziTVLoadVideo(videoId) {
               var playerContainer = document.getElementById("bonzitv_player");
               if (playerContainer) {
                 playerContainer.innerHTML =
@@ -321,6 +320,7 @@ function setup() {
                   'src="https://www.youtube.com/embed/' + videoId + '?autoplay=1&enablejsapi=1" ' +
                   'allow="autoplay; encrypted-media" frameborder="0"></iframe>';
 
+                if (bonziYTPlayer) bonziYTPlayer.destroy();
                 bonziYTPlayer = new YT.Player("bonzitv_iframe", {
                   events: {
                     onStateChange: function (e) {
@@ -333,6 +333,20 @@ function setup() {
               }
             }
 
+            function bonziTVLoadNext() {
+              var videoId;
+
+              if (bonziMode === "show") {
+                videoId = BonziTVSHOWS[Math.floor(Math.random() * BonziTVSHOWS.length)];
+                bonziMode = "ident";
+              } else {
+                videoId = BonziTVIDENTS[Math.floor(Math.random() * BonziTVIDENTS.length)];
+                bonziMode = "show";
+              }
+
+              bonziTVLoadVideo(videoId);
+            }
+
             (function () {
               var tag = document.createElement("script");
               tag.src = "https://www.youtube.com/iframe_api";
@@ -343,20 +357,8 @@ function setup() {
             }
         socket.on("bonzitv_video", function (data) {
             $("#bonzitv_container").show();
-            $("#bonzitv_player").html('<iframe id="bonzitv_iframe" src="https://www.youtube.com/embed/' + data.vid + '?autoplay=1&enablejsapi=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>');
-            
+            bonziTVLoadVideo(data.vid);
             bonziMode = "ident"; // After a chosen video, next should be an ident
-            
-            if (bonziYTPlayer) bonziYTPlayer.destroy();
-            bonziYTPlayer = new YT.Player("bonzitv_iframe", {
-              events: {
-                onStateChange: function (e) {
-                  if (e.data === YT.PlayerState.ENDED) {
-                    bonziTVLoadNext();
-                  }
-                }
-              }
-            });
         }),
         socket.on("admin", function (data) {
             window.isAdmin = data.admin;
@@ -781,6 +783,7 @@ var _createClass = (function () {
                             this.bouncing = false;
                             this.orbiting = false;
                             this.boinging = false;
+                            return;
                         }
                         1 == a.which && ((this.drag = !0), (this.dragged = !1), (this.drag_start = { x: a.pageX - this.x, y: a.pageY - this.y }), this.cancel(), this.sprite.gotoAndPlay("crossmove"));
                     },
@@ -1092,6 +1095,22 @@ var _createClass = (function () {
                     key: "updateName",
                     value: function () {
                         this.$nametag.text(this.userPublic.name);
+                    },
+                },
+                {
+                    key: "image",
+                    value: function (a) {
+                        var url = String(a).replace(/'/g, "&apos;");
+                        this.$dialogCont.html("<img src='" + url + "' style='max-width:100%; max-height:178px;'>"),
+                        this.$dialog.show();
+                    },
+                },
+                {
+                    key: "video",
+                    value: function (a) {
+                        var url = String(a).replace(/'/g, "&apos;");
+                        this.$dialogCont.html("<video src='" + url + "' controls style='max-width:100%; max-height:178px;'></video>"),
+                        this.$dialog.show();
                     },
                 },
                 {
