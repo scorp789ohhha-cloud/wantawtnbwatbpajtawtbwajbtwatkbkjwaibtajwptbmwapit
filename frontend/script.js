@@ -14,9 +14,9 @@ var BonziTVSHOWS = [
 
 // ===== IDENTS =====
 var BonziTVIDENTS = [
-  "b2OUKjLzcEc","Uyw-bne3G2A","ZZz3A6H4f-E","qQKd7VxAMBY","p6W9MZmu9pc","HKJopZ6MvPE","vRpADLCVfoM","EuEkdlCn-gI","UN3P95SjxP8","_TOKdk36iVM","_UEaBbz-gV0","kH3_lRNawtA","i0xpDILkXG8","i0xpDILkXG8"
+  "b2OUKjLzcEc","Uyw-bne3G2A","ZZz3A6H4f-E","qQKd7VxAMBY","p6W9MZmu9pc","HKJopZ6MvPE","vRpADLCVfoM","EuEkdlCn-gI","UN3P95SjxP8","_TOKdk36iVM","_UEaBbz-gV0","kH3_lRNawtA","i0xpDILkXG8","1KFVDDEaIEo"
 ];
-
+// bug fix 
 // ===== STATE =====
 var bonziShowIndex = 0;
 var bonziIdentIndex = 0;
