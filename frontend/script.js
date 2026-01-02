@@ -325,6 +325,73 @@ function time() {
     return `${hourString}:${minuteString} ${ampm}`;
 }
 
+function bonzilog(id, name, html, color, text, single, msgid) {
+    // hacky
+    // remind me to rewrite this as this is the biggest peice of dogshit
+    let icon = "";
+    let scrolled = chat_log_content.scrollHeight - chat_log_content.clientHeight - chat_log_content.scrollTop <= 20;
+    if (color) {
+        let [baseColor, ...hats] = color.split(" ");
+        icon = `<div class="log_icon">
+            <img class="color" src="img/pfp/${baseColor}.webp">
+            ${hats.map(hat => `<img class="hat" src="img/pfp/${hat}.webp">`).join(" ")
+            }
+        </div>`;
+    } else {
+        icon = `<div class="log_left_spacing"></div>`;
+    }
+    let thisUser = `${id};${name};${color}`;
+    let showDelete = (admin || king) && msgid;
+    if (thisUser !== lastUser || single) {
+        let timeString = `<span class="log_time">${time()}</span>`;
+        chat_log_content.insertAdjacentHTML("beforeend", `
+            <hr>
+            <div class="log_message" ${msgid ? `id="msg_${msgid}"` : ""}>
+                ${icon}
+                <div class="log_message_cont">
+                    <div class="reply"></div>
+                    ${showDelete ? "<div class=\"delete\"></div><div class=\"ban\"></div>" : ""}
+                    <span><b>${nmarkup(name)}</b> ${name ? timeString : ""}</span>
+                    <div class="log_message_content">${html} ${name ? "" : timeString}</div> 
+                </div>
+            </div>`);
+        lastUser = single ? "" : thisUser;
+    } else {
+        chat_log_content.insertAdjacentHTML("beforeend", `
+            <div class="log_message log_continue" ${msgid ? `id="msg_${msgid}"` : ""}>
+                <div class="reply"></div>
+                ${showDelete ? "<div class=\"delete\"></div><div class=\"ban\"></div>" : ""}
+                <div class="log_left_spacing"></div>
+                <div class="log_message_cont">
+                    <div class="log_message_content">${html}</div>
+                </div>
+            </div>`);
+    }
+    chat_log_content.lastChild.querySelector(".reply").onclick = () => {
+        quote = { name, text };
+        if (id === "server") quote.name = "SERVER";
+        talkcard.innerHTML = `Replying to ${nmarkup(quote.name)}`;
+        chat_message.focus();
+        talkcard.hidden = false;
+    };
+    chat_log_content.lastChild.onauxclick = (e) => {
+        if (e.button === 1) {
+            cmd(`delete ${msgid}`);
+        }
+    };
+    if (showDelete) {
+        chat_log_content.lastChild.querySelector(".delete").onclick = () => {
+            cmd(`delete ${msgid}`);
+        };
+        chat_log_content.lastChild.querySelector(".ban").onclick = () => {
+            cmd(`banmsg ${msgid}`);
+        };
+    }
+    if (scrolled) {
+        chat_log_content.scrollTop = chat_log_content.scrollHeight;
+    }
+}
+
 
 function updateAds() {
     var a = $(window).height() - $(adElement).height(),
