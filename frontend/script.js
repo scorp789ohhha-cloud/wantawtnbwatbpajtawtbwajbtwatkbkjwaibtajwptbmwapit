@@ -135,6 +135,22 @@ function linkify(a) {
         return "<a href='" + url.replace(/'/g, "&apos;") + "' target='_blank'>" + url + "</a>";
     });
 }
+function markdown(a) {
+    var patterns = [
+        { reg: /^\*\*(.*)/, rep: "<b>$1</b>" },
+        { reg: /^~~(.*)/, rep: "<i>$1</i>" },
+        { reg: /^__(.*)/, rep: "<u>$1</u>" },
+        { reg: /^--(.*)/, rep: "<s>$1</s>" },
+        { reg: /^\^\^(.*)/, rep: "<font size='5'>$1</font>" },
+        { reg: /^\$r\$(.*)/, rep: "<span class='rainbow'>$1</span>" },
+        { reg: /^\|\|(.*)/, rep: "<span class='spoiler' onclick='this.classList.toggle(\"revealed\")'>$1</span>" },
+        { reg: /^`(.*)/, rep: "<code>$1</code>" }
+    ];
+    patterns.forEach(function(p) {
+        a = a.replace(p.reg, p.rep);
+    });
+    return a;
+}
 function loadBonzis(a) {
     loadQueue.loadManifest([
         { id: "bonziBlack", src: "./img/bonzi/black.png" },
@@ -950,6 +966,7 @@ var _createClass = (function () {
                             (a = replaceAll(a, "{COLOR}", this.color)),
                             "undefined" != typeof b ? ((b = replaceAll(b, "{NAME}", this.userPublic.name)), (b = replaceAll(b, "{COLOR}", this.color))) : (b = a.replace("&gt;", "")),
                             (a = a.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\//g, "&#x2F;")),
+                            (a = markdown(a)),
                             (a = a.replace(/javascript:/gi, "no-javascript:").replace(/on\w+=/gi, "no-on=")),
                             (a = linkify(a));
                         var e = "&gt;" == a.substring(0, 4) || ">" == a[0];
