@@ -598,7 +598,14 @@ io.on('connection', (socket) => {
         io.to(room).emit('stopdvdbounce', { guid });
         break;
       case 'orbit':
-        io.to(room).emit('orbit', { guid });
+        if (args[0]) {
+          let speed = parseFloat(args[0]);
+          if (isNaN(speed)) speed = 1;
+          speed = Math.max(1, Math.min(3, speed));
+          io.to(room).emit('orbit', { guid: guid, speed: speed });
+        } else {
+          io.to(room).emit('orbit', { guid: guid, speed: 1 });
+        }
         break;
       case 'stoporbit':
         io.to(room).emit('stoporbit', { guid });
