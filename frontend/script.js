@@ -314,7 +314,6 @@ socket.on("talk", function (a) {
 "use strict";
 var passcode = "";
 var err = false;
-var admin = false;
 function time() {
     let date = new Date();
     let hours = date.getHours();
