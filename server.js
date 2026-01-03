@@ -53,6 +53,27 @@ const connectionThrottling = new Map(); // Tracks connection attempts per IP
 const CONNECTION_LIMIT = 3; // Max connections per window
 const CONNECTION_WINDOW = 60000; // 1 minute window
 
+// Flood protection (Event limiting)
+const eventCounts = new Map();
+const EVENT_LIMIT = 15; // Max events per window (all types)
+const EVENT_WINDOW = 2000; // 2 seconds
+
+function checkFloodLimit(socketId) {
+    const now = Date.now();
+    if (!eventCounts.has(socketId)) {
+        eventCounts.set(socketId, { count: 1, firstEvent: now });
+        return true;
+    }
+    const data = eventCounts.get(socketId);
+    if (now - data.firstEvent > EVENT_WINDOW) {
+        data.count = 1;
+        data.firstEvent = now;
+        return true;
+    }
+    data.count++;
+    return data.count <= EVENT_LIMIT;
+}
+
 function checkRateLimit(ip) {
     const now = Date.now();
     if (!messageCounts.has(ip)) {
@@ -170,6 +191,16 @@ function checkBan(ip) {
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
+  
+  // Anti-flood middleware for this specific socket
+  const originalOnEvent = socket.onevent;
+  socket.onevent = function(packet) {
+      if (!checkFloodLimit(socket.id)) {
+          socket.emit('alert', { text: 'Stop flooding!' });
+          return;
+      }
+      originalOnEvent.call(this, packet);
+  };
   
   // Get real IP from headers or socket
   const clientIp = socket.handshake.headers['x-real-ip'] || 
@@ -644,6 +675,7 @@ io.on('connection', (socket) => {
 
     const room = socket.room;
     const guid = socket.guid;
+    eventCounts.delete(socket.id);
     if (room && rooms[room] && rooms[room][guid]) {
       // Remove user
       delete rooms[room][guid];
