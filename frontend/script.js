@@ -1,799 +1,3 @@
-/* =========================
-   BONZITV CORE HANDLER
-   ========================= */
-
-// ===== SHOWS (BFDI + BFDIA + BFB/TPOT + Pizza POV + EthanGamerTV Roblox) =====
-var BonziTVSHOWS = [
-  // --- BFDI ---
-  "YQa2-DY7Y_Q", "0hRB8d6aAzs", "9w0G7v6wbm8", "04ErdQvQKyk", "NKjA1pGl5W4",
-
-  // --- BFDIA ---
-  "oPFuC7IcTiU", "b8vUzNczUbo",
-
-  // --- BFB / TPOT ---
-  "m_7nnajnaI8", "VrsdG8wJGAg",
-
-  // --- Pizza POV / No Talking ---
-  "GAHDT5tOyco", "vwsGT30TQ3A", "oT7iJzjhfJU", "Jyh88VNDWww", "fl2u3hZLzYw",
-
-  // --- EthanGamerTV Roblox ---
-  "4jtAbf5wk0s", "MWqNcT031OI", "VycoBoE4Qkk", "_ozldR0jGBs",
-  "0HR5fL1qOQk", "6tgY-t3slFM", "nrvV9s_dknA", "R9J1BpkcCYs", "klj3qXEaFJQ"
-];
-
-// ===== IDENTS (Real BonziTV idents only) =====
-var BonziTVIDENTS = [
-  "88cxenu68o8", "b2OUKjLzcEc", "lF47OCVZi6s",
-  "P8y03L-LUFE", "cuBqIBhnuUU", "bYDrr8Z9fPE",
-  "aKLk59bnKWE", "i0xpDILkXG8", "5674qRmTQY8", "RnkrKi4Tsuo"
-];
-
-// ===== STATE =====
-var bonziShowIndex = 0;
-var bonziIdentIndex = 0;
-var bonziMode = "show";
-
-// ===== CORE HANDLER FUNCTION =====
-function bonziTVNext() {
-  var nextVideo;
-
-  if (bonziMode === "show") {
-    nextVideo = BonziTVSHOWS[bonziShowIndex];
-    bonziShowIndex = (bonziShowIndex + 1) % BonziTVSHOWS.length;
-    bonziMode = "ident";
-  } else {
-    nextVideo = BonziTVIDENTS[bonziIdentIndex];
-    bonziIdentIndex = (bonziIdentIndex + 1) % BonziTVIDENTS.length;
-    bonziMode = "show";
-  }
-
-  // Return video info for whatever handler or player will use it
-  return {
-    videoId: nextVideo,
-    mode: bonziMode
-  };
-}
-
-// ===== SOCKET / EXTERNAL HOOK =====
-function toggleBonziTV(status) {
-  if (status) {
-    bonziShowIndex = 0;
-    bonziIdentIndex = 0;
-    bonziMode = "show";
-    return bonziTVNext(); // Start with first video
-  } else {
-    return null; // BonziTV stopped
-  }
-}
-
-// ===== ENHANCED CHAT FUNCTIONS =====
-let trusted = false;
-let admin = false;
-let king = false;
-let autorejoin = true;
-let blockerror = false;
-let quote = null;
-let lastUser = "";
-let logJoins = false;
-
-// String utility functions
-if (typeof String.prototype.replaceAll === "undefined") {
-    String.prototype.replaceAll = function (match, replace) {
-        match = match.replace(/[-[\]{}()*+?.\\\/^$|]/g, "\\$&");
-        return this.replace(new RegExp(match, "g"), replace);
-    }
-}
-
-function clamp(min, x, max) {
-    return Math.min(Math.max(x, min), max);
-}
-
-function sanitize(text) {
-    return text
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll("\"", "&quot;")
-        .replaceAll("'", "&apos;");
-}
-
-// Markdown/formatting rules
-let rules = {
-    "**": "b",
-    "~~": "i",
-    "--": "s",
-    "__": "u",
-    "``": "code",
-    "^^": "gay-big",
-    "$r$": "gay-rainbow",
-    "||": "gay-spoiler",
-}
-
-function markup(text) {
-    text = sanitize(text);
-    text = text
-        .replace(/(^|\n)(&gt;.*?)($|\n)/g, "$1<span class=\"greentext\">$2</span>$3")
-        .replaceAll("\n", "<br>");
-    for (let [token, tag] of Object.entries(rules)) {
-        let closing = false;
-        while (text.includes(token)) {
-            text = text.replace(token, closing ? `</${tag}>` : `<${tag}>`);
-            closing = !closing;
-        }
-        if (closing) {
-            text += `</${tag}>`;
-        }
-    }
-    text = text
-        .replaceAll("{FRANCE}", "<img src=\"./img/france.svg\" class=\"flag\" alt=\"🇫🇷\">")
-        .replace(/(https?:\/\/[^\s<>"']+)/g, "<a target=\"_blank\" href=\"$1\">$1</a>");
-    return text;
-}
-
-function nmarkup(text) {
-    while (text.includes("^^") || text.includes("||") || text.includes("\n")) {
-        text = text.replaceAll("^^", "").replaceAll("||", "").replaceAll("\n", "");
-    }
-    return markup(text);
-}
-
-function misolate(text) {
-    let tokens = [];
-    for (let i = 0; i < text.length; i++) {
-        for (let token of Object.keys(rules)) {
-            if (text.slice(i, i + token.length) === token) {
-                if (tokens.includes(token)) {
-                    tokens.splice(tokens.indexOf(token));
-                } else {
-                    tokens.unshift(token);
-                }
-            }
-        }
-    }
-    return text + tokens.join("");
-}
-
-function nisolate(text) {
-    while (text.includes("^^") || text.includes("||") || text.includes("\n")) {
-        text = text.replaceAll("^^", "").replaceAll("||", "").replaceAll("\n", "");
-    }
-    return misolate(text);
-}
-
-function toBgImg(name, color) {
-    return color.split(" ").map(sprite => `url("img/bonzi/${sprite}.webp")`).reverse().join(", ");
-}
-
-// Enhanced bonzilog function with message formatting
-function bonzilog(id, name, html, color, text, single, msgid) {
-    let icon = "";
-    let scrolled = chat_log_content.scrollHeight - chat_log_content.clientHeight - chat_log_content.scrollTop <= 20;
-    
-    if (color) {
-        let [baseColor, ...hats] = color.split(" ");
-        icon = `<div class="log_icon">
-            <img class="color" src="img/pfp/${baseColor}.webp">
-            ${hats.map(hat => `<img class="hat" src="img/pfp/${hat}.webp">`).join("")}
-        </div>`;
-    } else {
-        icon = `<div class="log_left_spacing"></div>`;
-    }
-    
-    let thisUser = `${id};${name};${color}`;
-    let showDelete = (admin || king) && msgid;
-    
-    if (thisUser !== lastUser || single) {
-        let timeString = `<span class="log_time">${time()}</span>`;
-        chat_log_content.insertAdjacentHTML("beforeend", `
-            <hr>
-            <div class="log_message" ${msgid ? `id="msg_${msgid}"` : ""}>
-                ${icon}
-                <div class="log_message_cont">
-                    <div class="reply"></div>
-                    ${showDelete ? "<div class=\"delete\"></div><div class=\"ban\"></div>" : ""}
-                    <span><b>${nmarkup(name)}</b> ${name ? timeString : ""}</span>
-                    <div class="log_message_content">${html} ${name ? "" : timeString}</div> 
-                </div>
-            </div>`);
-        lastUser = single ? "" : thisUser;
-    } else {
-        chat_log_content.insertAdjacentHTML("beforeend", `
-            <div class="log_message log_continue" ${msgid ? `id="msg_${msgid}"` : ""}>
-                <div class="reply"></div>
-                ${showDelete ? "<div class=\"delete\"></div><div class=\"ban\"></div>" : ""}
-                <div class="log_left_spacing"></div>
-                <div class="log_message_cont">
-                    <div class="log_message_content">${html}</div>
-                </div>
-            </div>`);
-    }
-    
-    // Add reply functionality
-    chat_log_content.lastChild.querySelector(".reply").onclick = () => {
-        quote = { name, text };
-        if (id === "server") quote.name = "SERVER";
-        talkcard.innerHTML = `Replying to ${nmarkup(quote.name)}`;
-        chat_message.focus();
-        talkcard.hidden = false;
-    };
-    
-    // Middle click to delete (admin only)
-    chat_log_content.lastChild.onauxclick = (e) => {
-        if (e.button === 1 && (admin || king)) {
-            cmd(`delete ${msgid}`);
-        }
-    };
-    
-    if (showDelete) {
-        chat_log_content.lastChild.querySelector(".delete").onclick = () => {
-            cmd(`delete ${msgid}`);
-        };
-        chat_log_content.lastChild.querySelector(".ban").onclick = () => {
-            cmd(`banmsg ${msgid}`);
-        };
-    }
-    
-    if (scrolled) {
-        chat_log_content.scrollTop = chat_log_content.scrollHeight;
-    }
-}
-
-// Settings system
-let wordBlacklist = [];
-
-function initSettings() {
-    localStorage.imageBlacklist = localStorage.imageBlacklist || "false";
-    localStorage.classicBg = localStorage.classicBg || "false";
-    localStorage.wordBlacklist = localStorage.wordBlacklist || "[]";
-    localStorage.volume = localStorage.volume || "90";
-}
-
-function updateSettings() {
-    document.body.classList.toggle("classic", localStorage.classicBg === "true");
-    setVolume(localStorage.volume / 100);
-}
-
-// Initialize settings
-try {
-    wordBlacklist = JSON.parse(localStorage.wordBlacklist || "[]");
-    if (!Array.isArray(wordBlacklist)) throw TypeError("wordBlacklist is not an array");
-    for (let word of wordBlacklist) {
-        if (typeof word !== "string") throw TypeError("wordBlacklist is broken");
-    }
-} catch (err) {
-    console.error("Loading settings failed: ", err);
-    localStorage.clear();
-    initSettings();
-}
-initSettings();
-updateSettings();
-
-// Command helper
-function cmd(str) {
-    socket.emit("command", { list: str.split(" ") });
-}
-
-// Volume control
-function setVolume(level) {
-    // Implement volume control if needed
-    console.log("Volume set to:", level);
-}
-
-// ===== SOCKET HANDLERS =====
-// Add new socket handlers for enhanced features
-socket.on("delete", function (data) {
-    for (let id of data.ids) {
-        document.getElementById(`msg_${id}`)?.remove();
-    }
-});
-
-socket.on("king", function () { king = true; });
-socket.on("trusted", function () { trusted = true; });
-
-// Update the talk socket handler to use enhanced logging
-socket.on("talk", function (a) {
-    var b = bonzis[a.guid];
-    if (b) {
-        b.cancel();
-        // Use enhanced talk method if available, otherwise fallback
-        if (b.talk && a.msgid) {
-            b.talk(a.text, a.text, { 
-                quote: a.quote, 
-                msgid: a.msgid 
-            });
-        } else {
-            b.runSingleEvent([{ type: "text", text: a.text }]);
-        }
-    }
-});
-
-// ===== EXAMPLE USAGE =====
-// Call toggleBonziTV(true) to reset and start
-// Call bonziTVNext() whenever you want the next video in the rotation
-
-"use strict";
-var passcode = "";
-var err = false;
-function time() {
-    let date = new Date();
-    let hours = date.getHours();
-    let minutes = date.getMinutes();
-    let hourString = String(hours % 12).padStart(2, "0");
-    let minuteString = String(minutes).padStart(2, "0");
-    let ampm = hours >= 12 ? "PM" : "AM";
-    return `${hourString}:${minuteString} ${ampm}`;
-}
-
-function bonzilog(id, name, html, color, text, single, msgid) {
-    // hacky
-    // remind me to rewrite this as this is the biggest peice of dogshit
-    let icon = "";
-    let scrolled = chat_log_content.scrollHeight - chat_log_content.clientHeight - chat_log_content.scrollTop <= 20;
-    if (color) {
-        let [baseColor, ...hats] = color.split(" ");
-        icon = `<div class="log_icon">
-            <img class="color" src="img/pfp/${baseColor}.webp">
-            ${hats.map(hat => `<img class="hat" src="img/pfp/${hat}.webp">`).join(" ")
-            }
-        </div>`;
-    } else {
-        icon = `<div class="log_left_spacing"></div>`;
-    }
-    let thisUser = `${id};${name};${color}`;
-    let showDelete = (admin || king) && msgid;
-    if (thisUser !== lastUser || single) {
-        let timeString = `<span class="log_time">${time()}</span>`;
-        chat_log_content.insertAdjacentHTML("beforeend", `
-            <hr>
-            <div class="log_message" ${msgid ? `id="msg_${msgid}"` : ""}>
-                ${icon}
-                <div class="log_message_cont">
-                    <div class="reply"></div>
-                    ${showDelete ? "<div class=\"delete\"></div><div class=\"ban\"></div>" : ""}
-                    <span><b>${nmarkup(name)}</b> ${name ? timeString : ""}</span>
-                    <div class="log_message_content">${html} ${name ? "" : timeString}</div> 
-                </div>
-            </div>`);
-        lastUser = single ? "" : thisUser;
-    } else {
-        chat_log_content.insertAdjacentHTML("beforeend", `
-            <div class="log_message log_continue" ${msgid ? `id="msg_${msgid}"` : ""}>
-                <div class="reply"></div>
-                ${showDelete ? "<div class=\"delete\"></div><div class=\"ban\"></div>" : ""}
-                <div class="log_left_spacing"></div>
-                <div class="log_message_cont">
-                    <div class="log_message_content">${html}</div>
-                </div>
-            </div>`);
-    }
-    chat_log_content.lastChild.querySelector(".reply").onclick = () => {
-        quote = { name, text };
-        if (id === "server") quote.name = "SERVER";
-        talkcard.innerHTML = `Replying to ${nmarkup(quote.name)}`;
-        chat_message.focus();
-        talkcard.hidden = false;
-    };
-    chat_log_content.lastChild.onauxclick = (e) => {
-        if (e.button === 1) {
-            cmd(`delete ${msgid}`);
-        }
-    };
-    if (showDelete) {
-        chat_log_content.lastChild.querySelector(".delete").onclick = () => {
-            cmd(`delete ${msgid}`);
-        };
-        chat_log_content.lastChild.querySelector(".ban").onclick = () => {
-            cmd(`banmsg ${msgid}`);
-        };
-    }
-    if (scrolled) {
-        chat_log_content.scrollTop = chat_log_content.scrollHeight;
-    }
-}
-
-
-function updateAds() {
-    var a = $(window).height() - $(adElement).height(),
-        b = a <= 250;
-    b && (a = $(window).height()), $(adElement)[b ? "hide" : "show"](), $("#content").height(a);
-}
-function _classCallCheck(a, b) {
-    if (!(a instanceof b)) throw new TypeError("Cannot call a class as a function");
-}
-function range(a, b) {
-    for (var c = [], d = a; d <= b; d++) c.push(d);
-    for (var d = a; d >= b; d--) c.push(d);
-    return c;
-}
-function replaceAll(a, b, c) {
-    return a.replace(new RegExp(b, "g"), c);
-}
-function s4() {
-    return Math.floor(65536 * (1 + Math.random()))
-        .toString(16)
-        .substring(1);
-}
-function youtubeParser(a) {
-    var b = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/,
-        c = a.match(b);
-    return !(!c || 11 != c[7].length) && c[7];
-}
-function rtimeOut(a, b) {
-    var c,
-        d = Date.now,
-        e = window.requestAnimationFrame,
-        f = d(),
-        g = function () {
-            d() - f < b ? c || e(g) : a();
-        };
-    return (
-        e(g),
-        {
-            clear: function () {
-                c = 1;
-            },
-        }
-    );
-}
-function rInterval(a, b) {
-    var c,
-        d = Date.now,
-        e = window.requestAnimationFrame,
-        f = d(),
-        g = function () {
-            d() - f < b || ((f += b), a()), c || e(g);
-        };
-    return (
-        e(g),
-        {
-            clear: function () {
-                c = 1;
-            },
-        }
-    );
-}
-function linkify(a) {
-    var b = /(https?:\/\/([-\w\.]+)+(:\d+)?(\/([\w\/_\.]*(\?\S+)?)?)?)/gi;
-    return a.replace(b, function(url) {
-        return "<a href='" + url.replace(/'/g, "&apos;") + "' target='_blank'>" + url + "</a>";
-    });
-}
-function loadBonzis(a) {
-    loadQueue.loadManifest([
-        { id: "bonziBlack", src: "./img/bonzi/black.png" },
-        { id: "bonziBlue", src: "./img/bonzi/blue.png" },
-        { id: "bonziBrown", src: "./img/bonzi/brown.png" },
-        { id: "bonziGreen", src: "./img/bonzi/green.png" },
-        { id: "bonziCyan", src: "./img/bonzi/cyan.png" },
-        { id: "bonziPurple", src: "./img/bonzi/purple.png" },
-        { id: "bonziRed", src: "./img/bonzi/red.png" },
-        { id: "bonziPink", src: "./img/bonzi/pink.png" },
-        { id: "bonziPeedy", src: "./img/bonzi/peedy.png" },
-        { id: "topjej", src: "./img/misc/topjej.png" },
-    ]),
-        loadQueue.on(
-            "fileload",
-            function (a) {
-                loadDone.push(a.item.id);
-            },
-            this
-        ),
-        a && loadQueue.on("complete", a, this);
-}
-function loadTest() {
-    $("#login_card").hide(),
-        $("#login_error").hide(),
-        $("#login_load").show(),
-        (window.loadTestInterval = rInterval(function () {
-            try {
-                if (!loadDone.equals(loadNeeded)) throw "Not done loading.";
-                login(), loadTestInterval.clear();
-            } catch (a) {}
-        }, 100));
-}
-function login() {
-   socket.emit("login", {passcode:passcode, name: $("#login_name").val(), room: $("#login_room").val() }), setup();
-}
-function errorFatal() {
-    ("none" != $("#page_ban").css("display") && "none" != $("#page_kick").css("display")) || $("#page_error").show();
-}
-function setup() {
-    $("#chat_send").click(sendInput),
-        $("#chat_message").keypress(function (a) {
-            13 == a.which && sendInput();
-        }),
-        socket.on("room", function (a) {
-            $("#room_owner")[a.isOwner ? "show" : "hide"](), $("#room_public")[a.isPublic ? "show" : "hide"](), $("#room_private")[a.isPublic ? "hide" : "show"](), $(".room_id").text(a.room);
-        }),
-        socket.on("nuke", (data) => {
-            let bonzi = bonzis.get(data.guid);
-            bonzi.explode();
-        });
-        socket.on("updateAll", function (a) {
-            $("#page_login").hide(), $("#chat_log").show(), $("#chat_log_min").hide(), (usersPublic = a.usersPublic), usersUpdate(), BonziHandler.bonzisCheck();
-        }),
-        socket.on("update", function (a) {
-            (window.usersPublic[a.guid] = a.userPublic), usersUpdate(), BonziHandler.bonzisCheck();
-        }),
-        socket.on("talk", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.runSingleEvent([{ type: "text", text: a.text }]);
-        }),
-        socket.on("move", function (a) {
-            var b = bonzis[a.guid];
-            void 0 !== b && b.move(a.x, a.y);
-        }),
-        socket.on("joke", function (a) {
-            var b = bonzis[a.guid];
-            (b.rng = new Math.seedrandom(a.rng)), b.cancel(), b.joke();
-        }),
-        socket.on("youtube", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.youtube(a.vid);
-        }),
-        socket.on("fact", function (a) {
-            var b = bonzis[a.guid];
-            (b.rng = new Math.seedrandom(a.rng)), b.cancel(), b.fact();
-        }),
-        socket.on("backflip", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.backflip(a.swag);
-        }),
-        socket.on("asshole", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.asshole(a.target);
-        }),
-        socket.on("owo", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.owo(a.target);
-        }),
-        
-        socket.on("triggered", function (a) {
-
-            var b = bonzis[a.guid];
-            b.cancel(), b.runSingleEvent(b.data.event_list_triggered);
-        }),
-               socket.on("linux", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.runSingleEvent(b.data.event_list_linux);
-        }),
-        
-        socket.on("clap", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.clap();
-        }),
-        socket.on("bang", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.bang();
-        }),
-        socket.on("image", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.image(a.url);
-        }),
-        socket.on("video", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.video(a.url);
-        }),
-        socket.on("grin", function (a) {
-            var b = bonzis[a.guid];
-            b.cancel(), b.grin();
-        }),
-        /* =========================
-   BONZITV CORE HANDLER + AUTO PLAY + SOCKET (socket on top)
-   ========================= */
-
-        socket.on("bonzitv", function (data) {
-              if (data.status) {
-                var container = document.getElementById("bonzitv_container");
-                if (!container) return;
-                container.style.display = "block";
-                if (data.vid) {
-                    bonziTVLoadVideo(data.vid);
-                } else {
-                    bonziTVLoadNext();
-                }
-              } else {
-                var container = document.getElementById("bonzitv_container");
-                if (!container) return;
-                container.style.display = "none";
-                if (bonziYTPlayer) bonziYTPlayer.destroy();
-                container.innerHTML = '';
-              }
-            });
-
-            var BonziTVSHOWS = [
-              "YQa2-DY7Y_Q","0hRB8d6aAzs","9w0G7v6wbm8","04ErdQvQKyk","NKjA1pGl5W4",
-              "oPFuC7IcTiU","b8vUzNczUbo",
-              "m_7nnajnaI8","VrsdG8wJGAg",
-              "GAHDT5tOyco","vwsGT30TQ3A","oT7iJzjhfJU","Jyh88VNDWww","fl2u3hZLzYw",
-              "4jtAbf5wk0s","MWqNcT031OI","VycoBoE4Qkk","_ozldR0jGBs","0HR5fL1qOQk",
-              "6tgY-t3slFM","nrvV9s_dknA","R9J1BpkcCYs","klj3qXEaFJQ"
-            ];
-
-            var BonziTVIDENTS = [
-              "88cxenu68o8","b2OUKjLzcEc","lF47OCVZi6s",
-              "P8y03L-LUFE","cuBqIBhnuUU","bYDrr8Z9fPE",
-              "aKLk59bnKWE","i0xpDILkXG8","5674qRmTQY8","RnkrKi4Tsuo"
-            ];
-
-            var bonziMode = "show";
-            var bonziYTPlayer = null;
-
-            function bonziTVLoadVideo(videoId) {
-              var playerContainer = document.getElementById("bonzitv_player");
-              if (playerContainer) {
-                playerContainer.innerHTML =
-                  '<iframe id="bonzitv_iframe" ' +
-                  'src="https://www.youtube.com/embed/' + videoId + '?autoplay=1&enablejsapi=1" ' +
-                  'allow="autoplay; encrypted-media" frameborder="0"></iframe>';
-
-                if (bonziYTPlayer) bonziYTPlayer.destroy();
-                bonziYTPlayer = new YT.Player("bonzitv_iframe", {
-                  events: {
-                    onStateChange: function (e) {
-                      if (e.data === YT.PlayerState.ENDED) {
-                        bonziTVLoadNext();
-                      }
-                    }
-                  }
-                });
-              }
-            }
-
-            function bonziTVLoadNext() {
-              var videoId;
-
-              if (bonziMode === "show") {
-                videoId = BonziTVSHOWS[Math.floor(Math.random() * BonziTVSHOWS.length)];
-                bonziMode = "ident";
-              } else {
-                videoId = BonziTVIDENTS[Math.floor(Math.random() * BonziTVIDENTS.length)];
-                bonziMode = "show";
-              }
-
-              bonziTVLoadVideo(videoId);
-            }
-
-            (function () {
-              var tag = document.createElement("script");
-              tag.src = "https://www.youtube.com/iframe_api";
-              document.head.appendChild(tag);
-            })();
-
-            function onYouTubeIframeAPIReady() {
-            }
-        socket.on("bonzitv_video", function (data) {
-            $("#bonzitv_container").show();
-            bonziTVLoadVideo(data.vid);
-            bonziMode = "ident"; // After a chosen video, next should be an ident
-        }),
-        socket.on("admin", function (data) {
-            window.isAdmin = data.admin;
-            window.admin = data.admin;
-        }),
-        socket.on("alert", function (data) {
-            alert(data.text);
-        }),
-        socket.on("nuked", () => setTimeout(() => { blockerror = true; location.reload() }, 4000));
-        socket.on("leave", function (a) {
-            var b = bonzis[a.guid];
-            "undefined" != typeof b &&
-                b.exit(
-                    function (a) {
-                        this.deconstruct(), delete bonzis[a.guid], delete usersPublic[a.guid], usersUpdate();
-                    }.bind(b, a)
-                );
-        });
-}
-function usersUpdate() {
-    (usersKeys = Object.keys(usersPublic)), (usersAmt = usersKeys.length);
-}
-function sendInput() {
-    var a = $("#chat_message").val();
-    if (($("#chat_message").val(""), a.length > 0)) {
-        var b = youtubeParser(a);
-        if (b) return void socket.emit("command", { list: ["youtube", b] });
-        if ("/" == a.substring(1, 0)) {
-            var c = a.substring(1).split(" ");
-            if (c[0].toLowerCase() === "bye") {
-                socket.emit("command", { list: ["bye"] });
-            } else {
-                socket.emit("command", { list: c });
-            }
-        } else socket.emit("talk", { text: a });
-    }
-}
-function touchHandler(a) {
-    var b = a.changedTouches,
-        c = b[0],
-        d = "";
-    switch (a.type) {
-        case "touchstart":
-            d = "mousedown";
-            break;
-        case "touchmove":
-            d = "mousemove";
-            break;
-        case "touchend":
-            d = "mouseup";
-            break;
-        default:
-            return;
-    }
-    var e = document.createEvent("MouseEvent");
-    e.initMouseEvent(d, !0, !0, window, 1, c.screenX, c.screenY, c.clientX, c.clientY, !1, !1, !1, !1, 0, null), c.target.dispatchEvent(e);
-}
-var adElement = "#ap_iframe";
-$(function () {
-    $("#chat_log_minimize").click(function() {
-        $("#chat_log").hide();
-        $("#chat_log_min").show();
-    });
-    $("#chat_log_min").click(function() {
-        $("#chat_log_min").hide();
-        $("#chat_log").show();
-    });
-    // Simple drag for chat log
-    let dragging = false;
-    let offset = { x: 0, y: 0 };
-    $("#chat_log_header").mousedown(function(e) {
-        dragging = true;
-        offset.x = e.pageX - $("#chat_log").offset().left;
-        offset.y = e.pageY - $("#chat_log").offset().top;
-    });
-    $(window).mousemove(function(e) {
-        if (dragging) {
-            $("#chat_log").css({
-                left: e.pageX - offset.x,
-                top: e.pageY - offset.y,
-                right: 'auto'
-            });
-        }
-    });
-    $(window).mouseup(function() {
-        dragging = false;
-    });
-
-    $(window).load(updateAds), $(window).resize(updateAds), $("body").on("DOMNodeInserted", adElement, updateAds), $("body").on("DOMNodeRemoved", adElement, updateAds);
-});
-var _createClass = (function () {
-        function a(a, b) {
-            for (var c = 0; c < b.length; c++) {
-                var d = b[c];
-                (d.enumerable = d.enumerable || !1), (d.configurable = !0), "value" in d && (d.writable = !0), Object.defineProperty(a, d.key, d);
-            }
-        }
-        return function (b, c, d) {
-            return c && a(b.prototype, c), d && a(b, d), b;
-        };
-    })(),
-    Bonzi = (function () {
-        function a(b, c) {
-            var d = this;
-            _classCallCheck(this, a),
-                (this.userPublic = c || { name: "BonziBUDDY", color: "purple", speed: 175, pitch: 50, voice: "en-us" }),
-                (this.color = this.userPublic.color),
-                this.colorPrev,
-                (this.data = window.BonziData),
-                (this.drag = !1),
-                (this.dragged = !1),
-                (this.eventQueue = []),
-                (this.eventRun = !0),
-                (this.event = null),
-                (this.willCancel = !1),
-                (this.run = !0),
-                (this.mute = !1),
-                (this.eventTypeToFunc = { anim: "updateAnim", html: "updateText", text: "updateText", idle: "updateIdle" }),
-                "undefined" == typeof b ? (this.id = s4() + s4()) : (this.id = b),
-                (this.rng = new Math.seedrandom(this.seed || this.id || Math.random())),
-                (this.selContainer = "#content"),
-                (this.$container = $(this.selContainer)),
-                this.$container.append(
-                    "\n\t\t\t<div id='bonzi_" +
-                        this.id +
-                        "' class='bonzi'>\n\t\t\t\t<div class='bonzi_name'></div>\n\t\t\t\t\t<div class='bonzi_placeholder'></div>\n\t\t\t\t<div style='display:none' class='bubble'>\n\t\t\t\t\t<p class='bubble-content'></p>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t"
-                ),
-                (this.selElement = "#bonzi_" + this.id),
                 (this.selDialog = this.selElement + " > .bubble"),
                 (this.selDialogCont = this.selElement + " > .bubble > p"),
                 (this.selNametag = this.selElement + " > .bonzi_name"),
@@ -817,11 +21,11 @@ var _createClass = (function () {
                 this.generate_event(this.$canvas, "mousedown", "mousedown"),
                 this.generate_event($(window), "mousemove", "mousemove"),
                 this.generate_event($(window), "mouseup", "mouseup");
-                
+
                 this.run = true;
                 this.eventQueue = [];
                 this.eventRun = true;
-            
+
                 this.explode = function() {
                     let explosion = document.createElement("div");
                     explosion.className = "explosion";
@@ -1060,7 +264,7 @@ var _createClass = (function () {
                     var joinSound = new Audio('./sfx/join.wav');
                     joinSound.play();
                 }, 1300);
-            
+
                 if (this.color === "peedy") {
                     var joinSoundTimeout = setTimeout(function() {
                         var joinSound = new Audio('./sfx/peedyjoin.wav');
@@ -1299,13 +503,36 @@ var _createClass = (function () {
                 {
                     key: "joke",
                     value: function () {
-                        this.runSingleEvent(this.data.event_list_joke);
+                        var open = this.data.event_list_joke_open[Math.floor(Math.random() * this.data.event_list_joke_open.length)];
+                        var mid = this.data.event_list_joke_mid[Math.floor(Math.random() * this.data.event_list_joke_mid.length)];
+                        var end = this.data.event_list_joke_end[Math.floor(Math.random() * this.data.event_list_joke_end.length)];
+                        
+                        var list = [];
+                        list = list.concat(open);
+                        list.push({ type: "anim", anim: "shrug_fwd", ticks: 15 });
+                        list = list.concat(mid);
+                        list.push({ type: "idle" });
+                        list = list.concat(end);
+                        list.push({ type: "idle" });
+                        
+                        this.runSingleEvent(list);
                     },
                 },
                 {
                     key: "fact",
                     value: function () {
-                        this.runSingleEvent(this.data.event_list_fact);
+                        var open = this.data.event_list_fact_open[Math.floor(Math.random() * this.data.event_list_fact_open.length)];
+                        var mid = this.data.event_list_fact_mid[Math.floor(Math.random() * this.data.event_list_fact_mid.length)];
+                        var end = this.data.event_list_fact_end[Math.floor(Math.random() * this.data.event_list_fact_end.length)];
+
+                        var list = [];
+                        list = list.concat(open);
+                        list = list.concat(mid);
+                        list.push({ type: "idle" });
+                        list = list.concat(end);
+                        list.push({ type: "idle" });
+
+                        this.runSingleEvent(list);
                     },
                 },
                 {
@@ -1465,17 +692,17 @@ var _createClass = (function () {
                         return { x: this.$container.width() - this.data.size.x, y: this.$container.height() - this.data.size.y - $("#chat_bar").height() };
                     },
                 },
-                
+
                 {
                     key: "clap",
                     value: function () {
                         this.runSingleEvent([{ type: "anim", anim: "clap_fwd", ticks: 15 }]);
-                        
+
                          var clapSoundTimeout = setTimeout(function() {
                             var clapSound = new Audio('./sfx/clap.wav');
                             clapSound.play();
                          }, 200);
-                       
+
                     },
                 },
                 {
@@ -1511,13 +738,13 @@ var _createClass = (function () {
                         var b = BonziHandler.stage;
                         this.cancel(),
                             b.removeChild(this.sprite);
-                        
+
                         var sheet = BonziHandler.spriteSheets[this.color];
                         if (this.colorPrev != this.color) {
                             delete this.sprite;
                             this.sprite = new createjs.Sprite(sheet, a ? "gone" : "idle");
                         }
-                        
+
                         b.addChild(this.sprite),
                             this.move();
                     },
@@ -1831,7 +1058,7 @@ var _createClass = (function () {
         }
     ];
 
-    
+
     $(document).ready(function () {
         window.BonziHandler = new (function () {
             return (
