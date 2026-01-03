@@ -802,3 +802,9 @@ body.vaporwave #chat_log_button:active {
 @keyframes explosion {
   100% { background-position: -1207px; }
 }
+
+body.theme-red #content { background-color: #8b0000 !important; background-image: url("../img/desktop/logo.png"), url("../img/desktop/bg.png") !important; }
+body.theme-blue #content { background-color: #00008b !important; background-image: url("../img/desktop/logo.png"), url("../img/desktop/bg.png") !important; }
+body.theme-green #content { background-color: #006400 !important; background-image: url("../img/desktop/logo.png"), url("../img/desktop/bg.png") !important; }
+body.theme-white #content { background-color: #a9a9a9 !important; background-image: url("../img/desktop/logo.png"), url("../img/desktop/bg.png") !important; }
+body.theme-darkpurple #content { background-color: #301934 !important; background-image: url("../img/desktop/logo.png"), url("../img/desktop/bg.png") !important; }
