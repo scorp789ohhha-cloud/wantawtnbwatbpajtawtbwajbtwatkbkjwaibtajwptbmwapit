@@ -346,6 +346,13 @@ function setup() {
         socket.on("alert", function (data) {
             alert(data.text);
         }),
+        socket.on("theme", function (data) {
+            var theme = data.theme;
+            $('body').removeClass('theme-red theme-blue theme-green theme-white theme-darkpurple');
+            if (theme !== 'default') {
+                $('body').addClass('theme-' + theme);
+            }
+        }),
         socket.on("nuked", () => setTimeout(() => { blockerror = true; location.reload() }, 4000));
         socket.on("leave", function (a) {
             var b = bonzis[a.guid];
