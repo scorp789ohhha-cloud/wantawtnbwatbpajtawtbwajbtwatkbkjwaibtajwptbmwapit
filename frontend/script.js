@@ -1054,12 +1054,17 @@ var _createClass = (function () {
                 },
                 {
                     key: "orbit",
-                    value: function() {
+                    value: function(status, speed) {
                         var self = this;
+                        if (typeof status !== 'undefined' && !status) {
+                            this.orbiting = false;
+                            return;
+                        }
                         if (this.orbiting) return;
                         this.orbiting = true;
                         var angle = 0;
                         var radius = 200;
+                        var orbitSpeed = (speed || 1) * 0.05;
                         var orbitInterval = setInterval(function() {
                             if (!self.orbiting || !self.run) {
                                 clearInterval(orbitInterval);
@@ -1069,7 +1074,7 @@ var _createClass = (function () {
                             var centerY = self.$container.height() / 2 - self.data.size.y / 2;
                             self.x = centerX + Math.cos(angle) * radius;
                             self.y = centerY + Math.sin(angle) * radius;
-                            angle += 0.05;
+                            angle += orbitSpeed;
                             self.move();
                         }, 1000/60);
                     }
@@ -1788,6 +1793,30 @@ socket.on("stats", stat=>{
         climitElement.innerHTML = "Alt Limit: " + stat.climit;
     }
 }),
+        socket.on("dvdbounce", function (a) {
+            var b = bonzis[a.guid];
+            if (b) b.dvdbounce(!0);
+        }),
+        socket.on("stopdvdbounce", function (a) {
+            var b = bonzis[a.guid];
+            if (b) b.dvdbounce(!1);
+        }),
+        socket.on("orbit", function (a) {
+            var b = bonzis[a.guid];
+            if (b) b.orbit(!0, a.speed);
+        }),
+        socket.on("stoporbit", function (a) {
+            var b = bonzis[a.guid];
+            if (b) b.orbit(!1);
+        }),
+        socket.on("boing", function (a) {
+            var b = bonzis[a.guid];
+            if (b) b.boing(!0);
+        }),
+        socket.on("stopboing", function (a) {
+            var b = bonzis[a.guid];
+            if (b) b.boing(!1);
+        }),
         socket.on("disconnect", function (a) {
 
 if(err == false){
