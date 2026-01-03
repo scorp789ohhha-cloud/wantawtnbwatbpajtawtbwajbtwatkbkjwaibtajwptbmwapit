@@ -594,11 +594,20 @@ io.on('connection', (socket) => {
       case 'dvdbounce':
         io.to(room).emit('dvdbounce', { guid });
         break;
+      case 'stopdvdbounce':
+        io.to(room).emit('stopdvdbounce', { guid });
+        break;
       case 'orbit':
         io.to(room).emit('orbit', { guid });
         break;
+      case 'stoporbit':
+        io.to(room).emit('stoporbit', { guid });
+        break;
       case 'boing':
         io.to(room).emit('boing', { guid });
+        break;
+      case 'stopboing':
+        io.to(room).emit('stopboing', { guid });
         break;
       case 'theme':
         if (args[0]) {
